@@ -15,7 +15,7 @@
 - **自动任务拆解** — 用自然语言描述目标，内置的协调者智能体自动将其拆解为带依赖关系和分配的任务图——无需手动编排。
 - **多智能体团队** — 定义不同角色、工具甚至不同模型的智能体。它们通过消息总线和共享内存协作。
 - **任务 DAG 调度** — 任务之间存在依赖关系。框架进行拓扑排序——有依赖的任务等待，无依赖的任务并行执行。
-- **模型无关** — Claude、GPT 和本地模型（Ollama、vLLM、LM Studio）可以在同一个团队中使用。通过 `baseURL` 即可接入任何 OpenAI 兼容服务。
+- **模型无关** — Claude、GPT、Gemini 和本地模型（Ollama、vLLM、LM Studio）可以在同一个团队中使用。通过 `baseURL` 即可接入任何 OpenAI 兼容服务。
 - **进程内执行** — 没有子进程开销。所有内容在一个 Node.js 进程中运行。可部署到 Serverless、Docker、CI/CD。
 
 ## 快速开始
@@ -158,6 +158,7 @@ npx tsx examples/01-single-agent.ts
 │  - stream()       │    │  - AnthropicAdapter  │
 └────────┬──────────┘    │  - OpenAIAdapter     │
          │               │  - CopilotAdapter    │
+         │               │  - GeminiAdapter     │
          │               └──────────────────────┘
 ┌────────▼──────────┐
 │  AgentRunner      │    ┌──────────────────────┐
@@ -184,6 +185,7 @@ npx tsx examples/01-single-agent.ts
 | Anthropic (Claude) | `provider: 'anthropic'` | `ANTHROPIC_API_KEY` | 已验证 |
 | OpenAI (GPT) | `provider: 'openai'` | `OPENAI_API_KEY` | 已验证 |
 | GitHub Copilot | `provider: 'copilot'` | `GITHUB_TOKEN` | 已验证 |
+| Gemini | `provider: 'gemini'` | `GEMINI_API_KEY` | 已验证 |
 | Ollama / vLLM / LM Studio | `provider: 'openai'` + `baseURL` | — | 已验证 |
 
 任何 OpenAI 兼容 API 均可通过 `provider: 'openai'` + `baseURL` 接入（DeepSeek、Groq、Mistral、Qwen、MiniMax 等）。这些 Provider 尚未完整验证——欢迎通过 [#25](https://github.com/JackChen-me/open-multi-agent/issues/25) 贡献验证。

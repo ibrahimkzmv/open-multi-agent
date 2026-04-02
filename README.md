@@ -186,6 +186,7 @@ npx tsx examples/01-single-agent.ts
 | Anthropic (Claude) | `provider: 'anthropic'` | `ANTHROPIC_API_KEY` | Verified |
 | OpenAI (GPT) | `provider: 'openai'` | `OPENAI_API_KEY` | Verified |
 | GitHub Copilot | `provider: 'copilot'` | `GITHUB_TOKEN` | Verified |
+| Gemini | `provider: 'gemini'` | `GEMINI_API_KEY` | Verified |
 | Ollama / vLLM / LM Studio | `provider: 'openai'` + `baseURL` | — | Verified |
 
 Any OpenAI-compatible API should work via `provider: 'openai'` + `baseURL` (DeepSeek, Groq, Mistral, Qwen, MiniMax, etc.). These providers have not been fully verified yet — contributions welcome via [#25](https://github.com/JackChen-me/open-multi-agent/issues/25).
