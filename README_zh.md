@@ -108,165 +108,23 @@ Tokens: 12847 output tokens
   <img src="https://contrib.rocks/image?repo=JackChen-me/open-multi-agent" />
 </a>
 
-## 更多示例
+## 示例
 
-<details>
-<summary><b>单智能体</b> — 一个智能体，一个提示词</summary>
+所有示例都是可运行脚本，位于 [`examples/`](./examples/) 目录。使用 `npx tsx` 运行：
 
-```typescript
-import { OpenMultiAgent } from '@jackchen_me/open-multi-agent'
-
-const orchestrator = new OpenMultiAgent({ defaultModel: 'claude-sonnet-4-6' })
-
-const result = await orchestrator.runAgent(
-  {
-    name: 'coder',
-    model: 'claude-sonnet-4-6',
-    tools: ['bash', 'file_write'],
-  },
-  'Write a TypeScript function that reverses a string, save it to /tmp/reverse.ts, and run it.',
-)
-
-console.log(result.output)
+```bash
+npx tsx examples/01-single-agent.ts
 ```
 
-</details>
-
-<details>
-<summary><b>任务流水线</b> — 显式控制任务图和分配</summary>
-
-```typescript
-const result = await orchestrator.runTasks(team, [
-  {
-    title: 'Design the data model',
-    description: 'Write a TypeScript interface spec to /tmp/spec.md',
-    assignee: 'architect',
-  },
-  {
-    title: 'Implement the module',
-    description: 'Read /tmp/spec.md and implement the module in /tmp/src/',
-    assignee: 'developer',
-    dependsOn: ['Design the data model'], // 等待设计完成后才开始
-  },
-  {
-    title: 'Write tests',
-    description: 'Read the implementation and write Vitest tests.',
-    assignee: 'developer',
-    dependsOn: ['Implement the module'],
-  },
-  {
-    title: 'Review code',
-    description: 'Review /tmp/src/ and produce a structured code review.',
-    assignee: 'reviewer',
-    dependsOn: ['Implement the module'], // 可以和测试并行执行
-  },
-])
-```
-
-</details>
-
-<details>
-<summary><b>自定义工具</b> — 使用 Zod schema 定义工具</summary>
-
-```typescript
-import { z } from 'zod'
-import { defineTool, Agent, ToolRegistry, ToolExecutor, registerBuiltInTools } from '@jackchen_me/open-multi-agent'
-
-const searchTool = defineTool({
-  name: 'web_search',
-  description: 'Search the web and return the top results.',
-  inputSchema: z.object({
-    query: z.string().describe('The search query.'),
-    maxResults: z.number().optional().describe('Number of results (default 5).'),
-  }),
-  execute: async ({ query, maxResults = 5 }) => {
-    const results = await mySearchProvider(query, maxResults)
-    return { data: JSON.stringify(results), isError: false }
-  },
-})
-
-const registry = new ToolRegistry()
-registerBuiltInTools(registry)
-registry.register(searchTool)
-
-const executor = new ToolExecutor(registry)
-const agent = new Agent(
-  { name: 'researcher', model: 'claude-sonnet-4-6', tools: ['web_search'] },
-  registry,
-  executor,
-)
-
-const result = await agent.run('Find the three most recent TypeScript releases.')
-```
-
-</details>
-
-<details>
-<summary><b>多模型团队</b> — 在一个工作流中混合使用 Claude、GPT 和本地模型</summary>
-
-```typescript
-const claudeAgent: AgentConfig = {
-  name: 'strategist',
-  model: 'claude-opus-4-6',
-  provider: 'anthropic',
-  systemPrompt: 'You plan high-level approaches.',
-  tools: ['file_write'],
-}
-
-const gptAgent: AgentConfig = {
-  name: 'implementer',
-  model: 'gpt-5.4',
-  provider: 'openai',
-  systemPrompt: 'You implement plans as working code.',
-  tools: ['bash', 'file_read', 'file_write'],
-}
-
-// 任何 OpenAI 兼容 API — Ollama、vLLM、LM Studio 等
-const localAgent: AgentConfig = {
-  name: 'reviewer',
-  model: 'llama3.1',
-  provider: 'openai',
-  baseURL: 'http://localhost:11434/v1',
-  apiKey: 'ollama',
-  systemPrompt: 'You review code for correctness and clarity.',
-  tools: ['file_read', 'grep'],
-}
-
-const team = orchestrator.createTeam('mixed-team', {
-  name: 'mixed-team',
-  agents: [claudeAgent, gptAgent, localAgent],
-  sharedMemory: true,
-})
-
-const result = await orchestrator.runTeam(team, 'Build a CLI tool that converts JSON to CSV.')
-```
-
-</details>
-
-<details>
-<summary><b>流式输出</b></summary>
-
-```typescript
-import { Agent, ToolRegistry, ToolExecutor, registerBuiltInTools } from '@jackchen_me/open-multi-agent'
-
-const registry = new ToolRegistry()
-registerBuiltInTools(registry)
-const executor = new ToolExecutor(registry)
-
-const agent = new Agent(
-  { name: 'writer', model: 'claude-sonnet-4-6', maxTurns: 3 },
-  registry,
-  executor,
-)
-
-for await (const event of agent.stream('Explain monads in two sentences.')) {
-  if (event.type === 'text' && typeof event.data === 'string') {
-    process.stdout.write(event.data)
-  }
-}
-```
-
-</details>
+| 示例 | 展示内容 |
+|------|----------|
+| [01 — 单智能体](examples/01-single-agent.ts) | `runAgent()` 单次调用、`stream()` 流式输出、`prompt()` 多轮对话 |
+| [02 — 团队协作](examples/02-team-collaboration.ts) | `runTeam()` 自动编排 + 协调者模式 |
+| [03 — 任务流水线](examples/03-task-pipeline.ts) | `runTasks()` 显式依赖图（设计 → 实现 → 测试 + 评审） |
+| [04 — 多模型团队](examples/04-multi-model-team.ts) | `defineTool()` 自定义工具、Anthropic + OpenAI 混合、`AgentPool` |
+| [05 — Copilot](examples/05-copilot-test.ts) | GitHub Copilot 作为 LLM 提供者 |
+| [06 — 本地模型](examples/06-local-model.ts) | Ollama + Claude 混合流水线，通过 `baseURL` 接入（兼容 vLLM、LM Studio 等） |
+| [07 — 扇出聚合](examples/07-fan-out-aggregate.ts) | `runParallel()` MapReduce — 3 个分析师并行，然后综合 |
 
 ## 架构
 
