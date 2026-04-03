@@ -2,7 +2,7 @@
 
 TypeScript framework for multi-agent orchestration. One `runTeam()` call from goal to result — the framework decomposes it into tasks, resolves dependencies, and runs agents in parallel.
 
-3 runtime dependencies · 27 source files · Deploys anywhere Node.js runs
+3 runtime dependencies · 27 source files · Deploys anywhere Node.js runs · Mentioned in [Latent Space](https://www.latent.space/p/ainews-a-quiet-april-fools) AI News
 
 [![GitHub stars](https://img.shields.io/github/stars/JackChen-me/open-multi-agent)](https://github.com/JackChen-me/open-multi-agent/stargazers)
 [![license](https://img.shields.io/github/license/JackChen-me/open-multi-agent)](./LICENSE)

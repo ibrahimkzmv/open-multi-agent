@@ -2,7 +2,7 @@
 
 TypeScript 多智能体编排框架。一次 `runTeam()` 调用从目标到结果——框架自动拆解任务、解析依赖、并行执行。
 
-3 个运行时依赖 · 27 个源文件 · Node.js 能跑的地方都能部署
+3 个运行时依赖 · 27 个源文件 · Node.js 能跑的地方都能部署 · 被 [Latent Space](https://www.latent.space/p/ainews-a-quiet-april-fools) AI News 提及（AI 工程领域头部 Newsletter，17 万+订阅者）
 
 [![GitHub stars](https://img.shields.io/github/stars/JackChen-me/open-multi-agent)](https://github.com/JackChen-me/open-multi-agent/stargazers)
 [![license](https://img.shields.io/github/license/JackChen-me/open-multi-agent)](./LICENSE)
