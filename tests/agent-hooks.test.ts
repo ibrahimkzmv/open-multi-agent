@@ -4,7 +4,7 @@ import { Agent } from '../src/agent/agent.js'
 import { AgentRunner } from '../src/agent/runner.js'
 import { ToolRegistry } from '../src/tool/framework.js'
 import { ToolExecutor } from '../src/tool/executor.js'
-import type { AgentConfig, AgentRunResult, LLMAdapter, LLMMessage, LLMResponse } from '../src/types.js'
+import type { AgentConfig, AgentRunResult, LLMAdapter, LLMMessage, LLMResponse, StreamEvent } from '../src/types.js'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -243,7 +243,7 @@ describe('Agent hooks — beforeRun / afterRun', () => {
     }
     const { agent, calls } = buildMockAgent(config, 'streamed')
 
-    const events = []
+    const events: StreamEvent[] = []
     for await (const event of agent.stream('original')) {
       events.push(event)
     }
@@ -263,7 +263,7 @@ describe('Agent hooks — beforeRun / afterRun', () => {
     }
     const { agent } = buildMockAgent(config, 'original')
 
-    const events = []
+    const events: StreamEvent[] = [] 
     for await (const event of agent.stream('hi')) {
       events.push(event)
     }
@@ -280,7 +280,7 @@ describe('Agent hooks — beforeRun / afterRun', () => {
     }
     const { agent } = buildMockAgent(config, 'unreachable')
 
-    const events = []
+    const events: StreamEvent[] = []
     for await (const event of agent.stream('hi')) {
       events.push(event)
     }
@@ -297,7 +297,7 @@ describe('Agent hooks — beforeRun / afterRun', () => {
     }
     const { agent } = buildMockAgent(config, 'streamed output')
 
-    const events = []
+    const events: StreamEvent[] = []
     for await (const event of agent.stream('hi')) {
       events.push(event)
     }

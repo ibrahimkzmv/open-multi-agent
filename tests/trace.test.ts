@@ -186,7 +186,7 @@ describe('AgentRunner trace events', () => {
     })
 
     const runOptions: RunOptions = {
-      onTrace: (e) => traces.push(e),
+      onTrace: (e) => { traces.push(e) },
       runId: 'run-1',
       traceAgent: 'test-agent',
     }
@@ -234,7 +234,7 @@ describe('AgentRunner trace events', () => {
 
     await runner.run(
       [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
-      { onTrace: (e) => traces.push(e), runId: 'run-2', traceAgent: 'tooler' },
+      { onTrace: (e) => { traces.push(e) }, runId: 'run-2', traceAgent: 'tooler' },
     )
 
     const toolTraces = traces.filter(t => t.type === 'tool_call')
@@ -273,7 +273,7 @@ describe('AgentRunner trace events', () => {
 
     await runner.run(
       [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
-      { onTrace: (e) => traces.push(e), runId: 'run-3', traceAgent: 'err-agent' },
+      { onTrace: (e) => { traces.push(e) }, runId: 'run-3', traceAgent: 'err-agent' },
     )
 
     const toolTraces = traces.filter(t => t.type === 'tool_call')
@@ -316,7 +316,7 @@ describe('Agent trace events', () => {
     const agent = buildMockAgent(config, [textResponse('Hello world')])
 
     const runOptions: Partial<RunOptions> = {
-      onTrace: (e) => traces.push(e),
+      onTrace: (e) => { traces.push(e) },
       runId: 'run-agent-1',
       traceAgent: 'my-agent',
     }
@@ -367,7 +367,7 @@ describe('Agent trace events', () => {
 
     const runId = 'shared-run-id'
     await agent.run('test', {
-      onTrace: (e) => traces.push(e),
+      onTrace: (e) => { traces.push(e) },
       runId,
       traceAgent: 'multi-trace-agent',
     })
@@ -436,7 +436,7 @@ describe('Agent trace events', () => {
 
     await runner.run(
       [{ role: 'user', content: [{ type: 'text', text: 'go' }] }],
-      { onTrace: (e) => traces.push(e), runId: 'run-tok', traceAgent: 'token-agent' },
+      { onTrace: (e) => { traces.push(e) }, runId: 'run-tok', traceAgent: 'token-agent' },
     )
 
     const llmTraces = traces.filter(t => t.type === 'llm_call')
