@@ -208,6 +208,8 @@ export interface AgentConfig {
   readonly tools?: readonly string[]
   readonly maxTurns?: number
   readonly maxTokens?: number
+  /** Maximum cumulative tokens (input + output) allowed for this run. */
+  readonly maxTokenBudget?: number
   readonly temperature?: number
   /**
    * Maximum wall-clock time (in milliseconds) for the entire agent run.
@@ -307,6 +309,8 @@ export interface AgentRunResult {
   readonly structured?: unknown
   /** True when the run was terminated or warned due to loop detection. */
   readonly loopDetected?: boolean
+  /** True when the run stopped because token budget was exceeded. */
+  readonly budgetExceeded?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -375,6 +379,7 @@ export interface OrchestratorEvent {
     | 'task_complete'
     | 'task_skipped'
     | 'task_retry'
+    | 'budget_exceeded'
     | 'message'
     | 'error'
   readonly agent?: string
@@ -385,6 +390,8 @@ export interface OrchestratorEvent {
 /** Top-level configuration for the orchestrator. */
 export interface OrchestratorConfig {
   readonly maxConcurrency?: number
+  /** Maximum cumulative tokens (input + output) allowed per orchestrator run. */
+  readonly maxTokenBudget?: number
   readonly defaultModel?: string
   readonly defaultProvider?: 'anthropic' | 'copilot' | 'grok' | 'openai' | 'gemini'
   readonly defaultBaseURL?: string

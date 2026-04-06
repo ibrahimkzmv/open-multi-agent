@@ -150,6 +150,7 @@ export class Agent {
       agentName: this.name,
       agentRole: this.config.systemPrompt?.slice(0, 50) ?? 'assistant',
       loopDetection: this.config.loopDetection,
+      maxTokenBudget: this.config.maxTokenBudget,
     }
 
     this.runner = new AgentRunner(
@@ -328,6 +329,16 @@ export class Agent {
       const result = await runner.run(messages, runOptions)
       this.state.tokenUsage = addUsage(this.state.tokenUsage, result.tokenUsage)
 
+      if (result.budgetExceeded) {
+        let budgetResult = this.toAgentRunResult(result, false)
+        if (this.config.afterRun) {
+          budgetResult = await this.config.afterRun(budgetResult)
+        }
+        this.transitionTo('completed')
+        this.emitAgentTrace(callerOptions, agentStartMs, budgetResult)
+        return budgetResult
+      }
+
       // --- Structured output validation ---
       if (this.config.outputSchema) {
         let validated = await this.validateStructuredOutput(
@@ -461,6 +472,7 @@ export class Agent {
         tokenUsage: mergedTokenUsage,
         toolCalls: mergedToolCalls,
         structured: validated,
+        ...(retryResult.budgetExceeded ? { budgetExceeded: true } : {}),
       }
     } catch {
       // Retry also failed
@@ -472,6 +484,7 @@ export class Agent {
         tokenUsage: mergedTokenUsage,
         toolCalls: mergedToolCalls,
         structured: undefined,
+        ...(retryResult.budgetExceeded ? { budgetExceeded: true } : {}),
       }
     }
   }
@@ -502,7 +515,7 @@ export class Agent {
           const result = event.data as import('./runner.js').RunResult
           this.state.tokenUsage = addUsage(this.state.tokenUsage, result.tokenUsage)
 
-          let agentResult = this.toAgentRunResult(result, true)
+          let agentResult = this.toAgentRunResult(result, !result.budgetExceeded)
           if (this.config.afterRun) {
             agentResult = await this.config.afterRun(agentResult)
           }
@@ -598,6 +611,7 @@ export class Agent {
       toolCalls: result.toolCalls,
       structured,
       ...(result.loopDetected ? { loopDetected: true } : {}),
+      ...(result.budgetExceeded ? { budgetExceeded: true } : {}),
     }
   }
 

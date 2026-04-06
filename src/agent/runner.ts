@@ -29,6 +29,7 @@ import type {
   LoopDetectionConfig,
   LoopDetectionInfo,
 } from '../types.js'
+import { TokenBudgetExceededError } from '../errors.js'
 import { LoopDetector } from './loop-detector.js'
 import { emitTrace } from '../utils/trace.js'
 import type { ToolRegistry } from '../tool/framework.js'
@@ -70,6 +71,8 @@ export interface RunnerOptions {
   readonly agentRole?: string
   /** Loop detection configuration. When set, detects stuck agent loops. */
   readonly loopDetection?: LoopDetectionConfig
+  /** Maximum cumulative tokens (input + output) allowed for this run. */
+  readonly maxTokenBudget?: number
 }
 
 /**
@@ -117,6 +120,8 @@ export interface RunResult {
   readonly turns: number
   /** True when the run was terminated or warned due to loop detection. */
   readonly loopDetected?: boolean
+  /** True when the run was terminated due to token budget limits. */
+  readonly budgetExceeded?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -232,6 +237,7 @@ export class AgentRunner {
     const allToolCalls: ToolCallRecord[] = []
     let finalOutput = ''
     let turns = 0
+    let budgetExceeded = false
 
     // Build the stable LLM options once; model / tokens / temp don't change.
     // toToolDefs() returns LLMToolDef[] (inputSchema, camelCase) — matches
@@ -300,6 +306,20 @@ export class AgentRunner {
         }
 
         totalUsage = addTokenUsage(totalUsage, response.usage)
+        const totalTokens = totalUsage.input_tokens + totalUsage.output_tokens
+        if (this.options.maxTokenBudget !== undefined && totalTokens > this.options.maxTokenBudget) {
+          budgetExceeded = true
+          finalOutput = extractText(response.content)
+          yield {
+            type: 'error',
+            data: new TokenBudgetExceededError(
+              this.options.agentName ?? 'unknown',
+              totalTokens,
+              this.options.maxTokenBudget,
+            ),
+          } satisfies StreamEvent
+          break
+        }
 
         // ------------------------------------------------------------------
         // Step 2: Build the assistant message from the response content.
@@ -516,6 +536,7 @@ export class AgentRunner {
       tokenUsage: totalUsage,
       turns,
       ...(loopDetected ? { loopDetected: true } : {}),
+      ...(budgetExceeded ? { budgetExceeded: true } : {}),
     }
 
     yield { type: 'done', data: runResult } satisfies StreamEvent
