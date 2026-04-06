@@ -222,6 +222,7 @@ export class AgentRunner {
    *  - `{ type: 'text', data: string }` for each text delta
    *  - `{ type: 'tool_use', data: ToolUseBlock }` when the model requests a tool
    *  - `{ type: 'tool_result', data: ToolResultBlock }` after each execution
+ *  - `{ type: 'budget_exceeded', data: TokenBudgetExceededError }` on budget trip
    *  - `{ type: 'done', data: RunResult }` at the very end
    *  - `{ type: 'error', data: Error }` on unrecoverable failure
    */
@@ -306,20 +307,6 @@ export class AgentRunner {
         }
 
         totalUsage = addTokenUsage(totalUsage, response.usage)
-        const totalTokens = totalUsage.input_tokens + totalUsage.output_tokens
-        if (this.options.maxTokenBudget !== undefined && totalTokens > this.options.maxTokenBudget) {
-          budgetExceeded = true
-          finalOutput = extractText(response.content)
-          yield {
-            type: 'error',
-            data: new TokenBudgetExceededError(
-              this.options.agentName ?? 'unknown',
-              totalTokens,
-              this.options.maxTokenBudget,
-            ),
-          } satisfies StreamEvent
-          break
-        }
 
         // ------------------------------------------------------------------
         // Step 2: Build the assistant message from the response content.
@@ -336,6 +323,21 @@ export class AgentRunner {
         const turnText = extractText(response.content)
         if (turnText.length > 0) {
           yield { type: 'text', data: turnText } satisfies StreamEvent
+        }
+
+        const totalTokens = totalUsage.input_tokens + totalUsage.output_tokens
+        if (this.options.maxTokenBudget !== undefined && totalTokens > this.options.maxTokenBudget) {
+          budgetExceeded = true
+          finalOutput = turnText
+          yield {
+            type: 'budget_exceeded',
+            data: new TokenBudgetExceededError(
+              this.options.agentName ?? 'unknown',
+              totalTokens,
+              this.options.maxTokenBudget,
+            ),
+          } satisfies StreamEvent
+          break
         }
 
         // Extract tool-use blocks for detection and execution.

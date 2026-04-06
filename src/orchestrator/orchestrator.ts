@@ -276,6 +276,7 @@ interface RunContext {
   cumulativeUsage: TokenUsage
   readonly maxTokenBudget?: number
   budgetExceededTriggered: boolean
+  budgetExceededReason?: string
 }
 
 /**
@@ -428,13 +429,13 @@ async function executeQueue(
       ) {
         ctx.budgetExceededTriggered = true
         const err = new TokenBudgetExceededError('orchestrator', totalTokens, ctx.maxTokenBudget)
+        ctx.budgetExceededReason = err.message
         config.onProgress?.({
           type: 'budget_exceeded',
           agent: assignee,
           task: task.id,
           data: err,
         } satisfies OrchestratorEvent)
-        queue.skipRemaining(err.message)
       }
 
       if (result.success) {
@@ -474,6 +475,7 @@ async function executeQueue(
     // Wait for the entire parallel batch before checking for newly-unblocked tasks.
     await Promise.all(dispatchPromises)
     if (ctx.budgetExceededTriggered) {
+      queue.skipRemaining(ctx.budgetExceededReason ?? 'Skipped: token budget exceeded.')
       break
     }
 
@@ -790,6 +792,7 @@ export class OpenMultiAgent {
       cumulativeUsage,
       maxTokenBudget,
       budgetExceededTriggered: false,
+      budgetExceededReason: undefined,
     }
 
     await executeQueue(queue, ctx)
@@ -899,6 +902,7 @@ export class OpenMultiAgent {
       cumulativeUsage: ZERO_USAGE,
       maxTokenBudget: this.config.maxTokenBudget,
       budgetExceededTriggered: false,
+      budgetExceededReason: undefined,
     }
 
     await executeQueue(queue, ctx)

@@ -90,11 +90,12 @@ export interface LLMResponse {
  * - `text`        — incremental text delta
  * - `tool_use`    — the model has begun or completed a tool-use block
  * - `tool_result` — a tool result has been appended to the stream
+ * - `budget_exceeded` — token budget threshold reached for this run
  * - `done`        — the stream has ended; `data` is the final {@link LLMResponse}
  * - `error`       — an unrecoverable error occurred; `data` is an `Error`
  */
 export interface StreamEvent {
-  readonly type: 'text' | 'tool_use' | 'tool_result' | 'loop_detected' | 'done' | 'error'
+  readonly type: 'text' | 'tool_use' | 'tool_result' | 'loop_detected' | 'budget_exceeded' | 'done' | 'error'
   readonly data: unknown
 }
 

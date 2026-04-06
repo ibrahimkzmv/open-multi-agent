@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { OpenMultiAgent } from '../src/orchestrator/orchestrator.js'
+import { Agent } from '../src/agent/agent.js'
+import { ToolRegistry } from '../src/tool/framework.js'
+import { ToolExecutor } from '../src/tool/executor.js'
 import type { AgentConfig, LLMChatOptions, LLMMessage, LLMResponse, OrchestratorEvent } from '../src/types.js'
 
 let mockAdapterResponses: string[] = []
@@ -59,7 +62,68 @@ describe('token budget enforcement', () => {
 
     expect(result.success).toBe(false)
     expect(result.budgetExceeded).toBe(true)
+    expect(result.messages).toHaveLength(1)
+    expect(result.messages[0]?.role).toBe('assistant')
+    expect(result.messages[0]?.content[0]).toMatchObject({ type: 'text', text: 'over budget' })
     expect(events.some(e => e.type === 'budget_exceeded')).toBe(true)
+  })
+
+  it('emits budget_exceeded stream event without error transition', async () => {
+    mockAdapterResponses = ['over budget']
+    mockAdapterUsage = [{ input_tokens: 20, output_tokens: 15 }]
+
+    const agent = new Agent(
+      agentConfig('streamer', 30),
+      new ToolRegistry(),
+      new ToolExecutor(new ToolRegistry()),
+    )
+
+    const eventTypes: string[] = []
+    for await (const event of agent.stream('test')) {
+      eventTypes.push(event.type)
+    }
+
+    expect(eventTypes).toContain('budget_exceeded')
+    expect(eventTypes).toContain('done')
+    expect(eventTypes).not.toContain('error')
+    expect(agent.getState().status).toBe('completed')
+  })
+
+  it('does not skip in-progress sibling tasks when team budget is exceeded mid-batch', async () => {
+    mockAdapterResponses = ['done-a', 'done-b', 'done-c']
+    mockAdapterUsage = [
+      { input_tokens: 15, output_tokens: 10 }, // A => 25
+      { input_tokens: 15, output_tokens: 10 }, // B => 50 total (exceeds 40)
+      { input_tokens: 15, output_tokens: 10 }, // C should never run
+    ]
+
+    const events: OrchestratorEvent[] = []
+    const oma = new OpenMultiAgent({
+      defaultModel: 'mock-model',
+      maxTokenBudget: 40,
+      onProgress: e => events.push(e),
+    })
+    const team = oma.createTeam('team-siblings', {
+      name: 'team-siblings',
+      agents: [agentConfig('worker-a'), agentConfig('worker-b')],
+      sharedMemory: false,
+    })
+
+    await oma.runTasks(team, [
+      { title: 'Task A', description: 'A', assignee: 'worker-a' },
+      { title: 'Task B', description: 'B', assignee: 'worker-b' },
+      { title: 'Task C', description: 'C', assignee: 'worker-a', dependsOn: ['Task A'] },
+    ])
+
+    const completedTaskIds = new Set(
+      events.filter(e => e.type === 'task_complete').map(e => e.task).filter(Boolean) as string[],
+    )
+    const skippedTaskIds = new Set(
+      events.filter(e => e.type === 'task_skipped').map(e => e.task).filter(Boolean) as string[],
+    )
+
+    const overlap = [...completedTaskIds].filter(id => skippedTaskIds.has(id))
+    expect(overlap).toHaveLength(0)
   })
 
   it('does not trigger budget events when budget is not exceeded', async () => {
@@ -147,7 +211,7 @@ describe('token budget enforcement', () => {
 
     expect(result.totalTokenUsage.input_tokens + result.totalTokenUsage.output_tokens).toBe(70)
     expect(events.some(e => e.type === 'budget_exceeded')).toBe(true)
-    expect(events.some(e => e.type === 'task_skipped')).toBe(true)
+    expect(events.some(e => e.type === 'error')).toBe(true)
   })
 
   it('enforces orchestrator budget in runTeam', async () => {
