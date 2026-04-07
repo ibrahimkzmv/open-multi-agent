@@ -93,13 +93,17 @@ export function defineTool<TInput>(config: {
 export class ToolRegistry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly tools = new Map<string, ToolDefinition<any>>()
+  private readonly runtimeToolNames = new Set<string>()
 
   /**
    * Add a tool to the registry.  Throws if a tool with the same name has
    * already been registered — prevents silent overwrites.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  register(tool: ToolDefinition<any>): void {
+  register(
+    tool: ToolDefinition<any>,
+    options?: { runtimeAdded?: boolean },
+  ): void {
     if (this.tools.has(tool.name)) {
       throw new Error(
         `ToolRegistry: a tool named "${tool.name}" is already registered. ` +
@@ -107,6 +111,9 @@ export class ToolRegistry {
       )
     }
     this.tools.set(tool.name, tool)
+    if (options?.runtimeAdded === true) {
+      this.runtimeToolNames.add(tool.name)
+    }
   }
 
   /** Return a tool by name, or `undefined` if not found. */
@@ -147,11 +154,12 @@ export class ToolRegistry {
    */
   unregister(name: string): void {
     this.tools.delete(name)
+    this.runtimeToolNames.delete(name)
   }
 
   /** Alias for {@link unregister} — available for symmetry with `register`. */
   deregister(name: string): void {
-    this.tools.delete(name)
+    this.unregister(name)
   }
 
   /**
@@ -168,6 +176,14 @@ export class ToolRegistry {
         inputSchema: schema,
       } satisfies LLMToolDef
     })
+  }
+
+  /**
+   * Return only tools that were added dynamically at runtime (e.g. via
+   * `agent.addTool()`), in LLM definition format.
+   */
+  toRuntimeToolDefs(): LLMToolDef[] {
+    return this.toToolDefs().filter(tool => this.runtimeToolNames.has(tool.name))
   }
 
   /**

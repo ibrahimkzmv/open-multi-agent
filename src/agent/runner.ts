@@ -47,8 +47,6 @@ export const TOOL_PRESETS = {
   full: ['file_read', 'file_write', 'file_edit', 'grep', 'glob', 'bash'],
 } as const satisfies Record<string, readonly string[]>
 
-const BUILT_IN_TOOL_NAMES = new Set(TOOL_PRESETS.full as readonly string[])
-
 /** Framework-level disallowed tools for safety rails. */
 export const AGENT_FRAMEWORK_DISALLOWED: readonly string[] = [
   // Empty for now, infrastructure for future built-in tools
@@ -228,39 +226,40 @@ export class AgentRunner {
       )
       if (overlap.length > 0) {
         console.warn(
-          `AgentRunner: tool "${overlap[0]}" appears in both allowedTools and disallowedTools. ` +
+          `AgentRunner: tools [${overlap.map(name => `"${name}"`).join(', ')}] appear in both allowedTools and disallowedTools. ` +
           'This is contradictory and may lead to unexpected behavior.'
         )
       }
     }
 
     const allTools = this.toolRegistry.toToolDefs()
-    const customTools = allTools.filter(t => !BUILT_IN_TOOL_NAMES.has(t.name))
-    let builtInTools = allTools.filter(t => BUILT_IN_TOOL_NAMES.has(t.name))
+    const runtimeCustomTools = this.toolRegistry.toRuntimeToolDefs()
+    const runtimeCustomToolNames = new Set(runtimeCustomTools.map(t => t.name))
+    let filteredTools = allTools.filter(t => !runtimeCustomToolNames.has(t.name))
 
     // 1. Apply preset filter if set
     if (this.options.toolPreset) {
       const presetTools = new Set(TOOL_PRESETS[this.options.toolPreset] as readonly string[])
-      builtInTools = builtInTools.filter(t => presetTools.has(t.name))
+      filteredTools = filteredTools.filter(t => presetTools.has(t.name))
     }
 
     // 2. Apply allowlist filter if set
     if (this.options.allowedTools) {
-      builtInTools = builtInTools.filter(t => this.options.allowedTools!.includes(t.name))
+      filteredTools = filteredTools.filter(t => this.options.allowedTools!.includes(t.name))
     }
 
     // 3. Apply denylist filter if set
     if (this.options.disallowedTools) {
       const denied = new Set(this.options.disallowedTools)
-      builtInTools = builtInTools.filter(t => !denied.has(t.name))
+      filteredTools = filteredTools.filter(t => !denied.has(t.name))
     }
 
     // 4. Apply framework-level safety rails
     const frameworkDenied = new Set(AGENT_FRAMEWORK_DISALLOWED)
-    builtInTools = builtInTools.filter(t => !frameworkDenied.has(t.name))
+    filteredTools = filteredTools.filter(t => !frameworkDenied.has(t.name))
 
-    // Custom tools stay available regardless of built-in filtering rules.
-    return [...builtInTools, ...customTools]
+    // Runtime-added custom tools stay available regardless of filtering rules.
+    return [...filteredTools, ...runtimeCustomTools]
   }
 
   // -------------------------------------------------------------------------

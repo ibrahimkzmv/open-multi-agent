@@ -74,7 +74,7 @@ function createTestTools() {
     description: 'Custom tool',
     inputSchema: z.object({ input: z.string() }),
     execute: async () => ({ data: 'custom', isError: false }),
-  }))
+  }), { runtimeAdded: true })
 
   return registry
 }
@@ -248,6 +248,29 @@ describe('Tool filtering', () => {
 
       expect(toolNames).toEqual(['custom_tool'])
     })
+
+    it('runtime-added tools bypass filtering regardless of tool name', () => {
+      const runtimeBuiltinNamedRegistry = new ToolRegistry()
+      runtimeBuiltinNamedRegistry.register(defineTool({
+        name: 'file_read',
+        description: 'Runtime override',
+        inputSchema: z.object({ path: z.string() }),
+        execute: async () => ({ data: 'runtime', isError: false }),
+      }), { runtimeAdded: true })
+
+      const runtimeBuiltinNamedRunner = new AgentRunner(
+        mockAdapter,
+        runtimeBuiltinNamedRegistry,
+        new ToolExecutor(runtimeBuiltinNamedRegistry),
+        {
+          model: 'test-model',
+          disallowedTools: ['file_read'],
+        },
+      )
+
+      const tools = (runtimeBuiltinNamedRunner as any).resolveTools() as LLMToolDef[]
+      expect(tools.map(t => t.name)).toEqual(['file_read'])
+    })
   })
 
   describe('resolveTools - validation warnings', () => {
@@ -271,7 +294,7 @@ describe('Tool filtering', () => {
       ;(runner as any).resolveTools()
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('tool "bash" appears in both allowedTools and disallowedTools')
+        expect.stringContaining('tools ["bash"] appear in both allowedTools and disallowedTools')
       )
     })
 
@@ -302,3 +325,4 @@ describe('Tool filtering', () => {
     })
   })
 })
+

@@ -263,7 +263,7 @@ export class Agent {
    * The tool becomes available to the next LLM call — no restart required.
    */
   addTool(tool: FrameworkToolDefinition): void {
-    this._toolRegistry.register(tool)
+    this._toolRegistry.register(tool, { runtimeAdded: true })
   }
 
   /**
