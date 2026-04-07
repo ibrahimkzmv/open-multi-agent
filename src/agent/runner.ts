@@ -28,12 +28,24 @@ import type {
   TraceEvent,
   LoopDetectionConfig,
   LoopDetectionInfo,
+  LLMToolDef,
 } from '../types.js'
 import { TokenBudgetExceededError } from '../errors.js'
 import { LoopDetector } from './loop-detector.js'
 import { emitTrace } from '../utils/trace.js'
 import type { ToolRegistry } from '../tool/framework.js'
 import type { ToolExecutor } from '../tool/executor.js'
+
+// ---------------------------------------------------------------------------
+// Tool presets
+// ---------------------------------------------------------------------------
+
+/** Predefined tool sets for common agent use cases. */
+export const TOOL_PRESETS = {
+  readonly: ['file_read', 'grep'],
+  readwrite: ['file_read', 'file_write', 'file_edit', 'grep'],
+  full: ['file_read', 'file_write', 'file_edit', 'grep', 'bash'],
+} as const satisfies Record<string, readonly string[]>
 
 // ---------------------------------------------------------------------------
 // Public interfaces
@@ -60,11 +72,15 @@ export interface RunnerOptions {
   /** AbortSignal that cancels any in-flight adapter call and stops the loop. */
   readonly abortSignal?: AbortSignal
   /**
-   * Whitelist of tool names this runner is allowed to use.
-   * When provided, only tools whose name appears in this list are sent to the
-   * LLM. When omitted, all registered tools are available.
+   * Tool access control configuration.
+   * - `toolPreset`: Predefined tool sets for common use cases
+   * - `allowedTools`: Whitelist of tool names (allowlist)
+   * - `disallowedTools`: Blacklist of tool names (denylist)
+   * Tools are resolved in order: preset → allowlist → denylist
    */
+  readonly toolPreset?: 'readonly' | 'readwrite' | 'full'
   readonly allowedTools?: readonly string[]
+  readonly disallowedTools?: readonly string[]
   /** Display name of the agent driving this runner (used in tool context). */
   readonly agentName?: string
   /** Short role description of the agent (used in tool context). */
@@ -181,6 +197,52 @@ export class AgentRunner {
   }
 
   // -------------------------------------------------------------------------
+  // Tool resolution
+  // -------------------------------------------------------------------------
+
+  /**
+   * Resolve the final set of tools available to this agent based on the
+   * three-layer configuration: preset → allowlist → denylist.
+   *
+   * Returns LLMToolDef[] for direct use with LLM adapters.
+   */
+  private resolveTools(): LLMToolDef[] {
+    // Validate configuration for contradictions
+    if (this.options.allowedTools && this.options.disallowedTools) {
+      const overlap = this.options.allowedTools.filter(tool =>
+        this.options.disallowedTools!.includes(tool)
+      )
+      if (overlap.length > 0) {
+        console.warn(
+          `AgentRunner: tool "${overlap[0]}" appears in both allowedTools and disallowedTools. ` +
+          'This is contradictory and may lead to unexpected behavior.'
+        )
+      }
+    }
+
+    let tools = this.toolRegistry.toToolDefs()
+
+    // 1. Apply preset filter if set
+    if (this.options.toolPreset) {
+      const presetTools = new Set(TOOL_PRESETS[this.options.toolPreset] as readonly string[])
+      tools = tools.filter(t => presetTools.has(t.name))
+    }
+
+    // 2. Apply allowlist filter if set
+    if (this.options.allowedTools) {
+      tools = tools.filter(t => this.options.allowedTools!.includes(t.name))
+    }
+
+    // 3. Apply denylist filter if set
+    if (this.options.disallowedTools) {
+      const denied = new Set(this.options.disallowedTools)
+      tools = tools.filter(t => !denied.has(t.name))
+    }
+
+    return tools
+  }
+
+  // -------------------------------------------------------------------------
   // Public API
   // -------------------------------------------------------------------------
 
@@ -241,12 +303,8 @@ export class AgentRunner {
     let budgetExceeded = false
 
     // Build the stable LLM options once; model / tokens / temp don't change.
-    // toToolDefs() returns LLMToolDef[] (inputSchema, camelCase) — matches
-    // LLMChatOptions.tools from types.ts directly.
-    const allDefs = this.toolRegistry.toToolDefs()
-    const toolDefs = this.options.allowedTools
-      ? allDefs.filter(d => this.options.allowedTools!.includes(d.name))
-      : allDefs
+    // resolveTools() returns LLMToolDef[] with three-layer filtering applied.
+    const toolDefs = this.resolveTools()
 
     // Per-call abortSignal takes precedence over the static one.
     const effectiveAbortSignal = options.abortSignal ?? this.options.abortSignal

@@ -207,6 +207,10 @@ export interface AgentConfig {
   readonly systemPrompt?: string
   /** Names of tools (from the tool registry) available to this agent. */
   readonly tools?: readonly string[]
+  /** Names of tools explicitly disallowed for this agent. */
+  readonly disallowedTools?: readonly string[]
+  /** Predefined tool preset for common use cases. */
+  readonly toolPreset?: 'readonly' | 'readwrite' | 'full'
   readonly maxTurns?: number
   readonly maxTokens?: number
   /** Maximum cumulative tokens (input + output) allowed for this run. */
