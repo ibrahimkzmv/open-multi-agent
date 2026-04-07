@@ -199,19 +199,19 @@ Predefined tool sets for common use cases:
 const readonlyAgent: AgentConfig = {
   name: 'reader',
   model: 'claude-sonnet-4-6',
-  toolPreset: 'readonly',  // file_read, grep
+  toolPreset: 'readonly',  // file_read, grep, glob
 }
 
 const readwriteAgent: AgentConfig = {
   name: 'editor',
   model: 'claude-sonnet-4-6',
-  toolPreset: 'readwrite',  // file_read, file_write, file_edit, grep
+  toolPreset: 'readwrite',  // file_read, file_write, file_edit, grep, glob
 }
 
 const fullAgent: AgentConfig = {
   name: 'executor',
   model: 'claude-sonnet-4-6',
-  toolPreset: 'full',  // all built-in tools including bash
+  toolPreset: 'full',  // file_read, file_write, file_edit, grep, glob, bash
 }
 ```
 
@@ -223,7 +223,7 @@ Combine presets with allowlists and denylists for precise control:
 const customAgent: AgentConfig = {
   name: 'custom',
   model: 'claude-sonnet-4-6',
-  toolPreset: 'readwrite',        // Start with: file_read, file_write, file_edit, grep
+  toolPreset: 'readwrite',        // Start with: file_read, file_write, file_edit, grep, glob
   tools: ['file_read', 'grep'],   // Allowlist: intersect with preset = file_read, grep
   disallowedTools: ['grep'],      // Denylist: subtract = file_read only
 }

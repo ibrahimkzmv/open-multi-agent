@@ -89,15 +89,15 @@ describe('Tool filtering', () => {
 
   describe('TOOL_PRESETS', () => {
     it('readonly preset has correct tools', () => {
-      expect(TOOL_PRESETS.readonly).toEqual(['file_read', 'grep'])
+      expect(TOOL_PRESETS.readonly).toEqual(['file_read', 'grep', 'glob'])
     })
 
     it('readwrite preset has correct tools', () => {
-      expect(TOOL_PRESETS.readwrite).toEqual(['file_read', 'file_write', 'file_edit', 'grep'])
+      expect(TOOL_PRESETS.readwrite).toEqual(['file_read', 'file_write', 'file_edit', 'grep', 'glob'])
     })
 
     it('full preset has correct tools', () => {
-      expect(TOOL_PRESETS.full).toEqual(['file_read', 'file_write', 'file_edit', 'grep', 'bash'])
+      expect(TOOL_PRESETS.full).toEqual(['file_read', 'file_write', 'file_edit', 'grep', 'glob', 'bash'])
     })
   })
 
@@ -124,7 +124,7 @@ describe('Tool filtering', () => {
       const tools = (runner as any).resolveTools() as LLMToolDef[]
       const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
 
-      expect(toolNames).toEqual(['file_read', 'grep'])
+      expect(toolNames).toEqual(['custom_tool', 'file_read', 'grep'])
     })
 
     it('readwrite preset filters correctly', () => {
@@ -136,7 +136,7 @@ describe('Tool filtering', () => {
       const tools = (runner as any).resolveTools() as LLMToolDef[]
       const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
 
-      expect(toolNames).toEqual(['file_edit', 'file_read', 'file_write', 'grep'])
+      expect(toolNames).toEqual(['custom_tool', 'file_edit', 'file_read', 'file_write', 'grep'])
     })
 
     it('full preset filters correctly', () => {
@@ -148,7 +148,7 @@ describe('Tool filtering', () => {
       const tools = (runner as any).resolveTools() as LLMToolDef[]
       const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
 
-      expect(toolNames).toEqual(['bash', 'file_edit', 'file_read', 'file_write', 'grep'])
+      expect(toolNames).toEqual(['bash', 'custom_tool', 'file_edit', 'file_read', 'file_write', 'grep'])
     })
   })
 
@@ -162,7 +162,7 @@ describe('Tool filtering', () => {
       const tools = (runner as any).resolveTools() as LLMToolDef[]
       const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
 
-      expect(toolNames).toEqual(['bash', 'file_read'])
+      expect(toolNames).toEqual(['bash', 'custom_tool', 'file_read'])
     })
 
     it('empty allowlist returns no tools', () => {
@@ -172,7 +172,7 @@ describe('Tool filtering', () => {
       })
 
       const tools = (runner as any).resolveTools()
-      expect(tools).toHaveLength(0)
+      expect((tools as LLMToolDef[]).map(t => t.name)).toEqual(['custom_tool'])
     })
   })
 
@@ -186,7 +186,7 @@ describe('Tool filtering', () => {
       const tools = (runner as any).resolveTools() as LLMToolDef[]
       const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
 
-      expect(toolNames).toEqual(['file_edit', 'file_read', 'file_write', 'grep'])
+      expect(toolNames).toEqual(['custom_tool', 'file_edit', 'file_read', 'file_write', 'grep'])
     })
 
     it('empty denylist returns all tools', () => {
@@ -215,7 +215,7 @@ describe('Tool filtering', () => {
       const tools = (runner as any).resolveTools() as LLMToolDef[]
       const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
 
-      expect(toolNames).toEqual(['file_read', 'grep'])
+      expect(toolNames).toEqual(['custom_tool', 'file_read', 'grep'])
     })
 
     it('preset filters first, then allowlist intersects, then denylist subtracts', () => {
@@ -230,7 +230,23 @@ describe('Tool filtering', () => {
       })
 
       const tools = (runner as any).resolveTools()
-      expect(tools).toHaveLength(0)
+      expect((tools as LLMToolDef[]).map(t => t.name)).toEqual(['custom_tool'])
+    })
+  })
+
+  describe('resolveTools - custom tool behavior', () => {
+    it('always includes custom tools regardless of filtering', () => {
+      const runner = new AgentRunner(mockAdapter, registry, executor, {
+        model: 'test-model',
+        toolPreset: 'readonly',
+        allowedTools: ['file_read'],
+        disallowedTools: ['file_read', 'bash', 'grep'],
+      })
+
+      const tools = (runner as any).resolveTools() as LLMToolDef[]
+      const toolNames = tools.map((t: LLMToolDef) => t.name).sort()
+
+      expect(toolNames).toEqual(['custom_tool'])
     })
   })
 
@@ -256,6 +272,20 @@ describe('Tool filtering', () => {
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining('tool "bash" appears in both allowedTools and disallowedTools')
+      )
+    })
+
+    it('warns when both toolPreset and allowedTools are set', () => {
+      const runner = new AgentRunner(mockAdapter, registry, executor, {
+        model: 'test-model',
+        toolPreset: 'readonly',
+        allowedTools: ['file_read', 'bash'],
+      })
+
+      ;(runner as any).resolveTools()
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('both toolPreset and allowedTools are set')
       )
     })
 

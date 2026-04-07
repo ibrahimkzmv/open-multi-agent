@@ -42,10 +42,12 @@ import type { ToolExecutor } from '../tool/executor.js'
 
 /** Predefined tool sets for common agent use cases. */
 export const TOOL_PRESETS = {
-  readonly: ['file_read', 'grep'],
-  readwrite: ['file_read', 'file_write', 'file_edit', 'grep'],
-  full: ['file_read', 'file_write', 'file_edit', 'grep', 'bash'],
+  readonly: ['file_read', 'grep', 'glob'],
+  readwrite: ['file_read', 'file_write', 'file_edit', 'grep', 'glob'],
+  full: ['file_read', 'file_write', 'file_edit', 'grep', 'glob', 'bash'],
 } as const satisfies Record<string, readonly string[]>
+
+const BUILT_IN_TOOL_NAMES = new Set(TOOL_PRESETS.full as readonly string[])
 
 /** Framework-level disallowed tools for safety rails. */
 export const AGENT_FRAMEWORK_DISALLOWED: readonly string[] = [
@@ -213,6 +215,13 @@ export class AgentRunner {
    */
   private resolveTools(): LLMToolDef[] {
     // Validate configuration for contradictions
+    if (this.options.toolPreset && this.options.allowedTools) {
+      console.warn(
+        'AgentRunner: both toolPreset and allowedTools are set. ' +
+        'Final tool access will be the intersection of both.'
+      )
+    }
+
     if (this.options.allowedTools && this.options.disallowedTools) {
       const overlap = this.options.allowedTools.filter(tool =>
         this.options.disallowedTools!.includes(tool)
@@ -225,30 +234,33 @@ export class AgentRunner {
       }
     }
 
-    let tools = this.toolRegistry.toToolDefs()
+    const allTools = this.toolRegistry.toToolDefs()
+    const customTools = allTools.filter(t => !BUILT_IN_TOOL_NAMES.has(t.name))
+    let builtInTools = allTools.filter(t => BUILT_IN_TOOL_NAMES.has(t.name))
 
     // 1. Apply preset filter if set
     if (this.options.toolPreset) {
       const presetTools = new Set(TOOL_PRESETS[this.options.toolPreset] as readonly string[])
-      tools = tools.filter(t => presetTools.has(t.name))
+      builtInTools = builtInTools.filter(t => presetTools.has(t.name))
     }
 
     // 2. Apply allowlist filter if set
     if (this.options.allowedTools) {
-      tools = tools.filter(t => this.options.allowedTools!.includes(t.name))
+      builtInTools = builtInTools.filter(t => this.options.allowedTools!.includes(t.name))
     }
 
     // 3. Apply denylist filter if set
     if (this.options.disallowedTools) {
       const denied = new Set(this.options.disallowedTools)
-      tools = tools.filter(t => !denied.has(t.name))
+      builtInTools = builtInTools.filter(t => !denied.has(t.name))
     }
 
     // 4. Apply framework-level safety rails
     const frameworkDenied = new Set(AGENT_FRAMEWORK_DISALLOWED)
-    tools = tools.filter(t => !frameworkDenied.has(t.name))
+    builtInTools = builtInTools.filter(t => !frameworkDenied.has(t.name))
 
-    return tools
+    // Custom tools stay available regardless of built-in filtering rules.
+    return [...builtInTools, ...customTools]
   }
 
   // -------------------------------------------------------------------------
