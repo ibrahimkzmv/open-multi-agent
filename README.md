@@ -187,6 +187,54 @@ npx tsx examples/01-single-agent.ts
 | `file_edit` | Edit a file by replacing an exact string match. |
 | `grep` | Search file contents with regex. Uses ripgrep when available, falls back to Node.js. |
 
+## Tool Configuration
+
+Agents can be configured with fine-grained tool access control using presets, allowlists, and denylists.
+
+### Tool Presets
+
+Predefined tool sets for common use cases:
+
+```typescript
+const readonlyAgent: AgentConfig = {
+  name: 'reader',
+  model: 'claude-sonnet-4-6',
+  toolPreset: 'readonly',  // file_read, grep
+}
+
+const readwriteAgent: AgentConfig = {
+  name: 'editor',
+  model: 'claude-sonnet-4-6',
+  toolPreset: 'readwrite',  // file_read, file_write, file_edit, grep
+}
+
+const fullAgent: AgentConfig = {
+  name: 'executor',
+  model: 'claude-sonnet-4-6',
+  toolPreset: 'full',  // all built-in tools including bash
+}
+```
+
+### Advanced Filtering
+
+Combine presets with allowlists and denylists for precise control:
+
+```typescript
+const customAgent: AgentConfig = {
+  name: 'custom',
+  model: 'claude-sonnet-4-6',
+  toolPreset: 'readwrite',        // Start with: file_read, file_write, file_edit, grep
+  tools: ['file_read', 'grep'],   // Allowlist: intersect with preset = file_read, grep
+  disallowedTools: ['grep'],      // Denylist: subtract = file_read only
+}
+```
+
+**Resolution order:** preset → allowlist → denylist → framework safety rails.
+
+### Custom Tools
+
+Tools added via `agent.addTool()` are always available regardless of filtering.
+
 ## Supported Providers
 
 | Provider | Config | Env var | Status |

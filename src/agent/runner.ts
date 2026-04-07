@@ -47,6 +47,11 @@ export const TOOL_PRESETS = {
   full: ['file_read', 'file_write', 'file_edit', 'grep', 'bash'],
 } as const satisfies Record<string, readonly string[]>
 
+/** Framework-level disallowed tools for safety rails. */
+export const AGENT_FRAMEWORK_DISALLOWED: readonly string[] = [
+  // Empty for now, infrastructure for future built-in tools
+]
+
 // ---------------------------------------------------------------------------
 // Public interfaces
 // ---------------------------------------------------------------------------
@@ -202,7 +207,7 @@ export class AgentRunner {
 
   /**
    * Resolve the final set of tools available to this agent based on the
-   * three-layer configuration: preset → allowlist → denylist.
+   * three-layer configuration: preset → allowlist → denylist → framework safety.
    *
    * Returns LLMToolDef[] for direct use with LLM adapters.
    */
@@ -238,6 +243,10 @@ export class AgentRunner {
       const denied = new Set(this.options.disallowedTools)
       tools = tools.filter(t => !denied.has(t.name))
     }
+
+    // 4. Apply framework-level safety rails
+    const frameworkDenied = new Set(AGENT_FRAMEWORK_DISALLOWED)
+    tools = tools.filter(t => !frameworkDenied.has(t.name))
 
     return tools
   }
