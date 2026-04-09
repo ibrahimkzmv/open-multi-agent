@@ -4,6 +4,8 @@
  * Demonstrates how to define tasks with explicit dependency chains
  * (design → implement → test → review) using runTasks(). The TaskQueue
  * automatically blocks downstream tasks until their dependencies complete.
+ * Prompt context is dependency-scoped by default: each task sees only its own
+ * description plus direct dependency results (not unrelated team outputs).
  *
  * Run:
  *   npx tsx examples/03-task-pipeline.ts
@@ -116,6 +118,7 @@ const tasks: Array<{
   description: string
   assignee?: string
   dependsOn?: string[]
+  memoryScope?: 'dependencies' | 'all'
 }> = [
   {
     title: 'Design: URL shortener data model',
@@ -162,6 +165,9 @@ Produce a structured code review with sections:
 - Verdict: SHIP or NEEDS WORK`,
     assignee: 'reviewer',
     dependsOn: ['Implement: URL shortener'], // runs in parallel with Test after Implement completes
+    // Optional override: reviewers can opt into full shared memory when needed.
+    // Remove this line to keep strict dependency-only context.
+    memoryScope: 'all',
   },
 ]
 

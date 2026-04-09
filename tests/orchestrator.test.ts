@@ -43,6 +43,7 @@ function createMockAdapter(responses: string[]): LLMAdapter {
  */
 let mockAdapterResponses: string[] = []
 let capturedChatOptions: LLMChatOptions[] = []
+let capturedPrompts: string[] = []
 
 vi.mock('../src/llm/adapter.js', () => ({
   createAdapter: async () => {
@@ -51,6 +52,12 @@ vi.mock('../src/llm/adapter.js', () => ({
       name: 'mock',
       async chat(_msgs: LLMMessage[], options: LLMChatOptions): Promise<LLMResponse> {
         capturedChatOptions.push(options)
+        const lastUser = [..._msgs].reverse().find((m) => m.role === 'user')
+        const prompt = (lastUser?.content ?? [])
+          .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+          .map((b) => b.text)
+          .join('\n')
+        capturedPrompts.push(prompt)
         const text = mockAdapterResponses[callIndex] ?? 'default mock response'
         callIndex++
         return {
@@ -97,6 +104,7 @@ describe('OpenMultiAgent', () => {
   beforeEach(() => {
     mockAdapterResponses = []
     capturedChatOptions = []
+    capturedPrompts = []
   })
 
   describe('createTeam', () => {
@@ -197,6 +205,67 @@ describe('OpenMultiAgent', () => {
       ])
 
       expect(result.success).toBe(true)
+    })
+
+    it('uses a clean slate for tasks without dependencies', async () => {
+      mockAdapterResponses = ['alpha done', 'beta done']
+
+      const oma = new OpenMultiAgent({ defaultModel: 'mock-model' })
+      const team = oma.createTeam('t', teamCfg())
+
+      await oma.runTasks(team, [
+        { title: 'Independent A', description: 'Do independent A', assignee: 'worker-a' },
+        { title: 'Independent B', description: 'Do independent B', assignee: 'worker-b' },
+      ])
+
+      const workerPrompts = capturedPrompts.slice(0, 2)
+      expect(workerPrompts[0]).toContain('# Task: Independent A')
+      expect(workerPrompts[1]).toContain('# Task: Independent B')
+      expect(workerPrompts[0]).not.toContain('## Shared Team Memory')
+      expect(workerPrompts[1]).not.toContain('## Shared Team Memory')
+      expect(workerPrompts[0]).not.toContain('## Context from prerequisite tasks')
+      expect(workerPrompts[1]).not.toContain('## Context from prerequisite tasks')
+    })
+
+    it('injects only dependency results into dependent task prompts', async () => {
+      mockAdapterResponses = ['first output', 'second output']
+
+      const oma = new OpenMultiAgent({ defaultModel: 'mock-model' })
+      const team = oma.createTeam('t', teamCfg())
+
+      await oma.runTasks(team, [
+        { title: 'First', description: 'Produce first', assignee: 'worker-a' },
+        { title: 'Second', description: 'Use first', assignee: 'worker-b', dependsOn: ['First'] },
+      ])
+
+      const secondPrompt = capturedPrompts[1] ?? ''
+      expect(secondPrompt).toContain('## Context from prerequisite tasks')
+      expect(secondPrompt).toContain('### First (by worker-a)')
+      expect(secondPrompt).toContain('first output')
+      expect(secondPrompt).not.toContain('## Shared Team Memory')
+    })
+
+    it('supports memoryScope all opt-in for full shared memory visibility', async () => {
+      mockAdapterResponses = ['writer output', 'reader output']
+
+      const oma = new OpenMultiAgent({ defaultModel: 'mock-model' })
+      const team = oma.createTeam('t', teamCfg())
+
+      await oma.runTasks(team, [
+        { title: 'Write', description: 'Write something', assignee: 'worker-a' },
+        {
+          title: 'Read all',
+          description: 'Read everything',
+          assignee: 'worker-b',
+          memoryScope: 'all',
+          dependsOn: ['Write'],
+        },
+      ])
+
+      const secondPrompt = capturedPrompts[1] ?? ''
+      expect(secondPrompt).toContain('## Shared Team Memory')
+      expect(secondPrompt).toContain('task:')
+      expect(secondPrompt).not.toContain('## Context from prerequisite tasks')
     })
   })
 

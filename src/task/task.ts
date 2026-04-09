@@ -31,6 +31,7 @@ export function createTask(input: {
   description: string
   assignee?: string
   dependsOn?: string[]
+  memoryScope?: 'dependencies' | 'all'
   maxRetries?: number
   retryDelayMs?: number
   retryBackoff?: number
@@ -43,6 +44,7 @@ export function createTask(input: {
     status: 'pending' as TaskStatus,
     assignee: input.assignee,
     dependsOn: input.dependsOn ? [...input.dependsOn] : undefined,
+    memoryScope: input.memoryScope,
     result: undefined,
     createdAt: now,
     updatedAt: now,

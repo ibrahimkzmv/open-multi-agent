@@ -124,8 +124,18 @@ export class SharedMemory {
    * - plan: Implement feature X using const type params
    * ```
    */
-  async getSummary(): Promise<string> {
-    const all = await this.store.list()
+  async getSummary(filter?: { taskIds?: string[] }): Promise<string> {
+    let all = await this.store.list()
+    if (filter?.taskIds && filter.taskIds.length > 0) {
+      const taskIds = new Set(filter.taskIds)
+      all = all.filter((entry) => {
+        const slashIdx = entry.key.indexOf('/')
+        const localKey = slashIdx === -1 ? entry.key : entry.key.slice(slashIdx + 1)
+        if (!localKey.startsWith('task:') || !localKey.endsWith(':result')) return false
+        const taskId = localKey.slice('task:'.length, localKey.length - ':result'.length)
+        return taskIds.has(taskId)
+      })
+    }
     if (all.length === 0) return ''
 
     // Group entries by agent name.

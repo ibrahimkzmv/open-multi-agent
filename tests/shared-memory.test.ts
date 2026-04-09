@@ -107,6 +107,19 @@ describe('SharedMemory', () => {
     expect(summary).toContain('…')
   })
 
+  it('filters summary to only requested task IDs', async () => {
+    const mem = new SharedMemory()
+    await mem.write('alice', 'task:t1:result', 'output 1')
+    await mem.write('bob', 'task:t2:result', 'output 2')
+    await mem.write('alice', 'notes', 'not a task result')
+
+    const summary = await mem.getSummary({ taskIds: ['t2'] })
+    expect(summary).toContain('### bob')
+    expect(summary).toContain('task:t2:result: output 2')
+    expect(summary).not.toContain('task:t1:result: output 1')
+    expect(summary).not.toContain('notes: not a task result')
+  })
+
   // -------------------------------------------------------------------------
   // listAll
   // -------------------------------------------------------------------------

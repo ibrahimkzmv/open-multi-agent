@@ -324,6 +324,10 @@ interface ParsedTaskSpec {
   description: string
   assignee?: string
   dependsOn?: string[]
+  memoryScope?: 'dependencies' | 'all'
+  maxRetries?: number
+  retryDelayMs?: number
+  retryBackoff?: number
 }
 
 /**
@@ -362,6 +366,10 @@ function parseTaskSpecs(raw: string): ParsedTaskSpec[] | null {
         dependsOn: Array.isArray(obj['dependsOn'])
           ? (obj['dependsOn'] as unknown[]).filter((x): x is string => typeof x === 'string')
           : undefined,
+        memoryScope: obj['memoryScope'] === 'all' ? 'all' : undefined,
+        maxRetries: typeof obj['maxRetries'] === 'number' ? obj['maxRetries'] : undefined,
+        retryDelayMs: typeof obj['retryDelayMs'] === 'number' ? obj['retryDelayMs'] : undefined,
+        retryBackoff: typeof obj['retryBackoff'] === 'number' ? obj['retryBackoff'] : undefined,
       })
     }
 
@@ -492,8 +500,8 @@ async function executeQueue(
         data: task,
       } satisfies OrchestratorEvent)
 
-      // Build the prompt: inject shared memory context + task description
-      const prompt = await buildTaskPrompt(task, team)
+      // Build the prompt: task description + dependency-only context by default.
+      const prompt = await buildTaskPrompt(task, team, queue)
 
       // Build trace context for this task's agent run
       const traceOptions: Partial<RunOptions> | undefined = config.onTrace
@@ -626,22 +634,37 @@ async function executeQueue(
  *
  * Injects:
  *  - Task title and description
- *  - Dependency results from shared memory (if available)
+ *  - Direct dependency task results by default (clean slate when none)
+ *  - Optional full shared-memory context when `task.memoryScope === 'all'`
  *  - Any messages addressed to this agent from the team bus
  */
-async function buildTaskPrompt(task: Task, team: Team): Promise<string> {
+async function buildTaskPrompt(task: Task, team: Team, queue: TaskQueue): Promise<string> {
   const lines: string[] = [
     `# Task: ${task.title}`,
     '',
     task.description,
   ]
 
-  // Inject shared memory summary so the agent sees its teammates' work
-  const sharedMem = team.getSharedMemoryInstance()
-  if (sharedMem) {
-    const summary = await sharedMem.getSummary()
-    if (summary) {
-      lines.push('', summary)
+  if (task.memoryScope === 'all') {
+    // Explicit opt-in for full visibility (legacy/shared-memory behavior).
+    const sharedMem = team.getSharedMemoryInstance()
+    if (sharedMem) {
+      const summary = await sharedMem.getSummary()
+      if (summary) {
+        lines.push('', summary)
+      }
+    }
+  } else if (task.dependsOn && task.dependsOn.length > 0) {
+    // Default-deny: inject only explicit prerequisite outputs.
+    const depResults: string[] = []
+    for (const depId of task.dependsOn) {
+      const depTask = queue.get(depId)
+      if (depTask?.status === 'completed' && depTask.result) {
+        depResults.push(`### ${depTask.title} (by ${depTask.assignee ?? 'unknown'})\n${depTask.result}`)
+      }
+    }
+    if (depResults.length > 0) {
+      lines.push('', '## Context from prerequisite tasks', '', ...depResults)
     }
   }
 
@@ -1071,6 +1094,7 @@ export class OpenMultiAgent {
       description: string
       assignee?: string
       dependsOn?: string[]
+      memoryScope?: 'dependencies' | 'all'
       maxRetries?: number
       retryDelayMs?: number
       retryBackoff?: number
@@ -1087,6 +1111,7 @@ export class OpenMultiAgent {
         description: t.description,
         assignee: t.assignee,
         dependsOn: t.dependsOn,
+        memoryScope: t.memoryScope,
         maxRetries: t.maxRetries,
         retryDelayMs: t.retryDelayMs,
         retryBackoff: t.retryBackoff,
@@ -1308,6 +1333,7 @@ export class OpenMultiAgent {
    */
   private loadSpecsIntoQueue(
     specs: ReadonlyArray<ParsedTaskSpec & {
+      memoryScope?: 'dependencies' | 'all'
       maxRetries?: number
       retryDelayMs?: number
       retryBackoff?: number
@@ -1328,6 +1354,7 @@ export class OpenMultiAgent {
         assignee: spec.assignee && agentNames.has(spec.assignee)
           ? spec.assignee
           : undefined,
+        memoryScope: spec.memoryScope,
         maxRetries: spec.maxRetries,
         retryDelayMs: spec.retryDelayMs,
         retryBackoff: spec.retryBackoff,

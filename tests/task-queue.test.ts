@@ -27,6 +27,7 @@ describe('TaskQueue', () => {
     q.add(task('a'))
     expect(q.list()).toHaveLength(1)
     expect(q.list()[0].id).toBe('a')
+    expect(q.get('a')?.title).toBe('a')
   })
 
   it('fires task:ready for a task with no dependencies', () => {

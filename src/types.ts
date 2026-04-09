@@ -355,6 +355,12 @@ export interface Task {
   assignee?: string
   /** IDs of tasks that must complete before this one can start. */
   dependsOn?: readonly string[]
+  /**
+   * Controls what prior team context is injected into this task's prompt.
+   * - `dependencies` (default): only direct dependency task results
+   * - `all`: full shared-memory summary
+   */
+  readonly memoryScope?: 'dependencies' | 'all'
   result?: string
   readonly createdAt: Date
   updatedAt: Date

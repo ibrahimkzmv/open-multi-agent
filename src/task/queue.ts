@@ -289,6 +289,11 @@ export class TaskQueue {
     return this.list().filter((t) => t.status === status)
   }
 
+  /** Returns a task by ID, if present. */
+  get(taskId: string): Task | undefined {
+    return this.tasks.get(taskId)
+  }
+
   /**
    * Returns `true` when every task in the queue has reached a terminal state
    * (`'completed'`, `'failed'`, or `'skipped'`), **or** the queue is empty.
