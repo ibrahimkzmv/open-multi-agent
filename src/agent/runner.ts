@@ -176,6 +176,31 @@ function addTokenUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
 
 const ZERO_USAGE: TokenUsage = { input_tokens: 0, output_tokens: 0 }
 
+/**
+ * Prepends synthetic framing text to the first user message so we never emit
+ * consecutive `user` turns (Bedrock) and summaries do not concatenate onto
+ * the original user prompt (direct API). If there is no user message yet,
+ * inserts a single assistant text preamble.
+ */
+function prependSyntheticPrefixToFirstUser(
+  messages: LLMMessage[],
+  prefix: string,
+): LLMMessage[] {
+  const userIdx = messages.findIndex(m => m.role === 'user')
+  if (userIdx < 0) {
+    return [{
+      role: 'assistant',
+      content: [{ type: 'text', text: prefix.trimEnd() }],
+    }, ...messages]
+  }
+  const target = messages[userIdx]!
+  const merged: LLMMessage = {
+    role: 'user',
+    content: [{ type: 'text', text: prefix }, ...target.content],
+  }
+  return [...messages.slice(0, userIdx), merged, ...messages.slice(userIdx + 1)]
+}
+
 // ---------------------------------------------------------------------------
 // AgentRunner
 // ---------------------------------------------------------------------------
@@ -197,7 +222,7 @@ export class AgentRunner {
   private readonly maxTurns: number
   private summarizeCache: {
     oldSignature: string
-    summaryMessage: LLMMessage
+    summaryPrefix: string
   } | null = null
 
   constructor(
@@ -237,13 +262,10 @@ export class AgentRunner {
 
     const droppedPairs = Math.floor((afterFirst.length - kept.length) / 2)
     if (droppedPairs > 0) {
-      result.push({
-        role: 'user',
-        content: [{
-          type: 'text',
-          text: `[Earlier conversation history truncated — ${droppedPairs} turn(s) removed]`,
-        }],
-      })
+      const notice =
+        `[Earlier conversation history truncated — ${droppedPairs} turn(s) removed]\n\n`
+      result.push(...prependSyntheticPrefixToFirstUser(kept, notice))
+      return result
     }
 
     result.push(...kept)
@@ -257,30 +279,36 @@ export class AgentRunner {
     baseChatOptions: LLMChatOptions,
     turns: number,
     options: RunOptions,
-  ): Promise<LLMMessage[]> {
+  ): Promise<{ messages: LLMMessage[]; usage: TokenUsage }> {
     const estimated = estimateTokens(messages)
     if (estimated <= maxTokens || messages.length < 4) {
-      return messages
+      return { messages, usage: ZERO_USAGE }
     }
 
     const firstUserIndex = messages.findIndex(m => m.role === 'user')
     if (firstUserIndex < 0 || firstUserIndex === messages.length - 1) {
-      return messages
+      return { messages, usage: ZERO_USAGE }
     }
 
     const firstUser = messages[firstUserIndex]!
     const rest = messages.slice(firstUserIndex + 1)
     if (rest.length < 2) {
-      return messages
+      return { messages, usage: ZERO_USAGE }
     }
 
-    const splitAt = Math.max(2, Math.floor(rest.length / 2))
+    // Split on an even boundary so we never separate a tool_use assistant turn
+    // from its tool_result user message (rest is user/assistant pairs).
+    const splitAt = Math.max(2, Math.floor(rest.length / 4) * 2)
     const oldPortion = rest.slice(0, splitAt)
     const recentPortion = rest.slice(splitAt)
 
     const oldSignature = oldPortion.map(m => this.serializeMessage(m)).join('\n')
     if (this.summarizeCache !== null && this.summarizeCache.oldSignature === oldSignature) {
-      return [firstUser, this.summarizeCache.summaryMessage, ...recentPortion]
+      const mergedRecent = prependSyntheticPrefixToFirstUser(
+        recentPortion,
+        `${this.summarizeCache.summaryPrefix}\n\n`,
+      )
+      return { messages: [firstUser, ...mergedRecent], usage: ZERO_USAGE }
     }
 
     const summaryPrompt = [
@@ -327,18 +355,19 @@ export class AgentRunner {
     }
 
     const summaryText = extractText(summaryResponse.content).trim()
-    const summaryMessage: LLMMessage = {
-      role: 'user',
-      content: [{
-        type: 'text',
-        text: summaryText.length > 0
-          ? `[Conversation summary]\n${summaryText}`
-          : '[Conversation summary unavailable]',
-      }],
-    }
+    const summaryPrefix = summaryText.length > 0
+      ? `[Conversation summary]\n${summaryText}`
+      : '[Conversation summary unavailable]'
 
-    this.summarizeCache = { oldSignature, summaryMessage }
-    return [firstUser, summaryMessage, ...recentPortion]
+    this.summarizeCache = { oldSignature, summaryPrefix }
+    const mergedRecent = prependSyntheticPrefixToFirstUser(
+      recentPortion,
+      `${summaryPrefix}\n\n`,
+    )
+    return {
+      messages: [firstUser, ...mergedRecent],
+      usage: summaryResponse.usage,
+    }
   }
 
   private async applyContextStrategy(
@@ -347,9 +376,9 @@ export class AgentRunner {
     baseChatOptions: LLMChatOptions,
     turns: number,
     options: RunOptions,
-  ): Promise<LLMMessage[]> {
+  ): Promise<{ messages: LLMMessage[]; usage: TokenUsage }> {
     if (strategy.type === 'sliding-window') {
-      return this.truncateToSlidingWindow(messages, strategy.maxTurns)
+      return { messages: this.truncateToSlidingWindow(messages, strategy.maxTurns), usage: ZERO_USAGE }
     }
 
     if (strategy.type === 'summarize') {
@@ -368,7 +397,7 @@ export class AgentRunner {
     if (!Array.isArray(compressed) || compressed.length === 0) {
       throw new Error('contextStrategy.custom.compress must return a non-empty LLMMessage[]')
     }
-    return compressed
+    return { messages: compressed, usage: ZERO_USAGE }
   }
 
   // -------------------------------------------------------------------------
@@ -535,13 +564,15 @@ export class AgentRunner {
 
         // Optionally compact context before each LLM call after the first turn.
         if (this.options.contextStrategy && turns > 1) {
-          conversationMessages = await this.applyContextStrategy(
+          const compacted = await this.applyContextStrategy(
             conversationMessages,
             this.options.contextStrategy,
             baseChatOptions,
             turns,
             options,
           )
+          conversationMessages = compacted.messages
+          totalUsage = addTokenUsage(totalUsage, compacted.usage)
         }
 
         // ------------------------------------------------------------------

@@ -137,7 +137,7 @@ describe('AgentRunner contextStrategy', () => {
       contextStrategy: { type: 'summarize', maxTokens: 20 },
     })
 
-    await runner.run(
+    const result = await runner.run(
       [{ role: 'user', content: [{ type: 'text', text: 'start' }] }],
       { onTrace: (e) => { traces.push(e) }, runId: 'run-summary', traceAgent: 'context-agent' },
     )
@@ -146,6 +146,23 @@ describe('AgentRunner contextStrategy', () => {
     expect(summaryCall).toBeDefined()
     const llmTraces = traces.filter(t => t.type === 'llm_call')
     expect(llmTraces.some(t => t.type === 'llm_call' && t.phase === 'summary')).toBe(true)
+
+    // Summary adapter usage must count toward RunResult.tokenUsage (maxTokenBudget).
+    expect(result.tokenUsage.input_tokens).toBe(15 + 15 + 10 + 10)
+    expect(result.tokenUsage.output_tokens).toBe(25 + 25 + 20 + 20)
+
+    // After compaction, summary text is folded into the next user turn (not a
+    // standalone user message), preserving user/assistant alternation.
+    const turnAfterSummary = calls.find(
+      c => c.messages.some(
+        m => m.role === 'user' && m.content.some(
+          b => b.type === 'text' && b.text.includes('[Conversation summary]'),
+        ),
+      ),
+    )
+    expect(turnAfterSummary).toBeDefined()
+    const rolesAfterFirstUser = turnAfterSummary!.messages.map(m => m.role).join(',')
+    expect(rolesAfterFirstUser).not.toMatch(/^user,user/)
   })
 
   it('custom strategy calls compress callback and uses returned messages', async () => {
