@@ -54,6 +54,8 @@ import type {
   TokenUsage,
 } from '../types.js'
 import type { RunOptions } from '../agent/runner.js'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { Agent } from '../agent/agent.js'
 import { AgentPool } from '../agent/pool.js'
 import { emitTrace, generateRunId } from '../utils/trace.js'
@@ -203,6 +205,511 @@ function resolveTokenBudget(primary?: number, fallback?: number): number | undef
   if (primary === undefined) return fallback
   if (fallback === undefined) return primary
   return Math.min(primary, fallback)
+}
+
+interface DashboardTaskMetrics {
+  readonly durationMs: number
+  readonly tokenUsage: TokenUsage
+  readonly toolCalls: AgentRunResult['toolCalls']
+}
+
+interface DashboardTaskNode {
+  readonly id: string
+  readonly title: string
+  readonly assignee?: string
+  readonly status: TaskStatus
+  readonly dependsOn: readonly string[]
+  readonly metrics?: DashboardTaskMetrics
+}
+
+function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): string {
+  const dataJson = JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    goal: _goal,
+    tasks: _tasks,
+  })
+
+  return `<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Open Multi Agent</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#faf8ff",
+                        "secondary-dim": "#ecb200",
+                        "on-primary": "#005762",
+                        "on-tertiary-fixed-variant": "#006827",
+                        "primary-fixed-dim": "#00d4ec",
+                        "tertiary-container": "#5cfd80",
+                        "secondary": "#fdc003",
+                        "primary-dim": "#00d4ec",
+                        "surface-container": "#0f1930",
+                        "on-secondary": "#553e00",
+                        "surface": "#060e20",
+                        "on-surface": "#dee5ff",
+                        "surface-container-highest": "#192540",
+                        "on-secondary-fixed-variant": "#674c00",
+                        "on-tertiary-container": "#005d22",
+                        "secondary-fixed-dim": "#f7ba00",
+                        "surface-variant": "#192540",
+                        "surface-container-low": "#091328",
+                        "secondary-container": "#785900",
+                        "tertiary-fixed-dim": "#4bee74",
+                        "on-primary-fixed-variant": "#005762",
+                        "primary-container": "#00e3fd",
+                        "surface-dim": "#060e20",
+                        "error-container": "#9f0519",
+                        "on-error-container": "#ffa8a3",
+                        "primary-fixed": "#00e3fd",
+                        "tertiary-dim": "#4bee74",
+                        "surface-container-high": "#141f38",
+                        "background": "#060e20",
+                        "surface-bright": "#1f2b49",
+                        "error-dim": "#d7383b",
+                        "on-primary-container": "#004d57",
+                        "outline": "#6d758c",
+                        "error": "#ff716c",
+                        "on-secondary-container": "#fff6ec",
+                        "on-primary-fixed": "#003840",
+                        "inverse-on-surface": "#4d556b",
+                        "secondary-fixed": "#ffca4d",
+                        "tertiary-fixed": "#5cfd80",
+                        "on-tertiary-fixed": "#004819",
+                        "surface-tint": "#81ecff",
+                        "tertiary": "#b8ffbb",
+                        "outline-variant": "#40485d",
+                        "on-error": "#490006",
+                        "on-surface-variant": "#a3aac4",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary": "#006727",
+                        "primary": "#81ecff",
+                        "on-secondary-fixed": "#443100",
+                        "inverse-primary": "#006976",
+                        "on-background": "#dee5ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .grid-pattern {
+            background-image: radial-gradient(circle, #40485d 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .node-active-glow {
+            box-shadow: 0 0 15px rgba(129, 236, 255, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+    <main class="p-8 min-h-[calc(100vh-64px)] grid-pattern relative overflow-hidden flex flex-col lg:flex-row gap-6">
+        <div id="viewport" class="flex-1 relative min-h-[600px] overflow-hidden cursor-grab">
+            <div id="canvas" class="absolute inset-0 origin-top-left">
+                <svg id="edgesLayer" class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg"></svg>
+                <div id="nodesLayer"></div>
+            </div>
+        </div>
+        <aside id="detailsPanel" class="hidden w-full lg:w-[400px] bg-surface-container-high p-6 flex flex-col gap-8 border-l border-outline-variant/10">
+            <div>
+                <h2 class="font-headline font-black text-lg tracking-widest mb-6 text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined" data-icon="info">info</span>
+                    NODE_DETAILS
+                </h2>
+                <button id="closePanel" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Goal</label>
+                        <p id="goalText" class="text-xs bg-surface-container p-3 border-b border-outline-variant/20"></p>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Assigned Agent</label>
+                        <div class="flex items-center gap-4 bg-surface-container p-3">
+                            <img alt="Agent Avatar" class="w-10 h-10 object-cover border border-primary/30" data-alt="Futuristic holographic ai agent head profile with digital scanning lines and cool cyan lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHyJBaLru101be5kCT8V24npSoaGAhHTiZvlv1xnORj2N6ByM3imV1kTuoQD9GS88AgGzADrvY0poHSrbotZQc_Y4PegsbmQS4-gApUrpmfOTvlmwr9yD4cLpsyZ9aAlJy7A17TwNL0kOiLqPTI2tXcXP3L6fhA9Q3vi7Zi5kL9LRi8vIVTZqoRTtcKDwneeImLaM5MV5r1DNm1OZPmg7FuD-LbMUBt_FPaQpXWwYCQ584_qtyobd_CFUlFOJHsA1Z0hcyS6qHYdPy" />
+                            <div>
+                                <p id="selectedAssignee" class="text-sm font-bold text-on-surface">-</p>
+                                <p id="selectedState" class="text-[10px] font-mono text-secondary">ACTIVE STATE: -</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Execution Start</label>
+                            <p id="selectedStart" class="text-xs font-mono bg-surface-container p-2 border-b border-outline-variant/20">-</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Execution End</label>
+                            <p id="selectedEnd" class="text-xs font-mono bg-surface-container p-2 border-b border-outline-variant/20 text-on-surface-variant">-</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Token Breakdown</label>
+                        <div class="space-y-2 bg-surface-container p-4">
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-on-surface-variant">PROMPT:</span>
+                                <span id="selectedPromptTokens" class="text-on-surface">0</span>
+                            </div>
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-on-surface-variant">COMPLETION:</span>
+                                <span id="selectedCompletionTokens" class="text-on-surface text-secondary">0</span>
+                            </div>
+                            <div class="w-full h-1 bg-surface-variant mt-2">
+                                <div id="selectedTokenRatio" class="bg-primary h-full w-0"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col min-h-[200px]">
+                <h2 class="font-headline font-black text-[10px] tracking-widest mb-4 text-on-surface-variant">LIVE_AGENT_OUTPUT</h2>
+                <div id="liveOutput" class="bg-surface-container-lowest flex-1 p-3 font-mono text-[10px] leading-relaxed overflow-y-auto space-y-1">
+                </div>
+            </div>
+        </aside>
+    </main>
+    <div class="fixed left-0 top-0 w-1 h-screen bg-gradient-to-b from-primary via-secondary to-tertiary z-[60] opacity-30"></div>
+    <script>
+        const payload = ${dataJson};
+        const canvas = document.getElementById("canvas");
+        const viewport = document.getElementById("viewport");
+        const edgesLayer = document.getElementById("edgesLayer");
+        const nodesLayer = document.getElementById("nodesLayer");
+        const goalText = document.getElementById("goalText");
+        const liveOutput = document.getElementById("liveOutput");
+        const selectedAssignee = document.getElementById("selectedAssignee");
+        const selectedState = document.getElementById("selectedState");
+        const selectedStart = document.getElementById("selectedStart");
+        const selectedEnd = document.getElementById("selectedEnd");
+        const selectedPromptTokens = document.getElementById("selectedPromptTokens");
+        const selectedCompletionTokens = document.getElementById("selectedCompletionTokens");
+        const selectedTokenRatio = document.getElementById("selectedTokenRatio");
+        const svgNs = "http://www.w3.org/2000/svg";
+
+        let scale = 1;
+        let translate = { x: 0, y: 0 };
+
+        let isDragging = false;
+        let last = { x: 0, y: 0 };
+
+        function updateTransform() {
+            canvas.style.transform = \`
+                translate(\${translate.x}px, \${translate.y}px)
+                scale(\${scale})
+            \`;
+        }
+
+        viewport.addEventListener("wheel", (e) => {
+            e.preventDefault();
+
+            const zoomIntensity = 0.0015;
+            const delta = -e.deltaY * zoomIntensity;
+            const newScale = Math.min(Math.max(0.4, scale + delta), 2.5);
+
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const dx = mouseX - translate.x;
+            const dy = mouseY - translate.y;
+
+            translate.x -= dx * (newScale / scale - 1);
+            translate.y -= dy * (newScale / scale - 1);
+            scale = newScale;
+            updateTransform();
+        });
+
+        viewport.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            last = { x: e.clientX, y: e.clientY };
+            viewport.classList.add("cursor-grabbing");
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+
+            const dx = e.clientX - last.x;
+            const dy = e.clientY - last.y;
+            translate.x += dx;
+            translate.y += dy;
+            last = { x: e.clientX, y: e.clientY };
+            updateTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+            isDragging = false;
+            viewport.classList.remove("cursor-grabbing");
+        });
+
+        updateTransform();
+
+        const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+        goalText.textContent = payload.goal ?? "";
+
+        const statusStyles = {
+            completed: { border: "border-tertiary", icon: "check_circle", iconColor: "text-tertiary", container: "bg-surface-container-lowest node-active-glow", statusColor: "text-on-surface-variant", chip: "STABLE" },
+            failed: { border: "border-error", icon: "error", iconColor: "text-error", container: "bg-surface-container-lowest", statusColor: "text-error", chip: "FAILED" },
+            blocked: { border: "border-outline", icon: "lock", iconColor: "text-outline", container: "bg-surface-container-low opacity-60 grayscale", statusColor: "text-on-surface-variant", chip: "BLOCKED" },
+            skipped: { border: "border-outline", icon: "skip_next", iconColor: "text-outline", container: "bg-surface-container-low opacity-60", statusColor: "text-on-surface-variant", chip: "SKIPPED" },
+            in_progress: { border: "border-secondary", icon: "sync", iconColor: "text-secondary", container: "bg-surface-container-low node-active-glow border border-outline-variant/20 shadow-[0_0_20px_rgba(253,192,3,0.1)]", statusColor: "text-secondary", chip: "ACTIVE_STREAM", spin: true },
+            pending: { border: "border-outline", icon: "hourglass_empty", iconColor: "text-outline", container: "bg-surface-container-low opacity-60 grayscale", statusColor: "text-on-surface-variant", chip: "WAITING" },
+        };
+
+        function durationText(task) {
+            const ms = task?.metrics?.durationMs ?? 0;
+            const seconds = Math.max(0, ms / 1000).toFixed(1);
+            return task.status === "completed" ? "DONE (" + seconds + "s)" : task.status.toUpperCase();
+        }
+
+        function layoutTasks(taskList) {
+            const byId = new Map(taskList.map((task) => [task.id, task]));
+            const children = new Map(taskList.map((task) => [task.id, []]));
+            const indegree = new Map();
+
+            for (const task of taskList) {
+                const deps = (task.dependsOn || []).filter((dep) => byId.has(dep));
+                indegree.set(task.id, deps.length);
+                for (const depId of deps) {
+                    children.get(depId).push(task.id);
+                }
+            }
+
+            const levels = new Map();
+            const queue = [];
+            for (const task of taskList) {
+                if ((indegree.get(task.id) ?? 0) === 0) {
+                    levels.set(task.id, 0);
+                    queue.push(task.id);
+                }
+            }
+
+            while (queue.length > 0) {
+                const currentId = queue.shift();
+                const baseLevel = levels.get(currentId) ?? 0;
+                for (const childId of children.get(currentId) || []) {
+                    const nextLevel = Math.max(levels.get(childId) ?? 0, baseLevel + 1);
+                    levels.set(childId, nextLevel);
+                    indegree.set(childId, (indegree.get(childId) ?? 1) - 1);
+                    if ((indegree.get(childId) ?? 0) === 0) {
+                        queue.push(childId);
+                    }
+                }
+            }
+
+            for (const task of taskList) {
+                if (!levels.has(task.id)) levels.set(task.id, 0);
+            }
+
+            const cols = new Map();
+            for (const task of taskList) {
+                const level = levels.get(task.id) ?? 0;
+                if (!cols.has(level)) cols.set(level, []);
+                cols.get(level).push(task);
+            }
+
+            const sortedLevels = Array.from(cols.keys()).sort((a, b) => a - b);
+            const nodeW = 256;
+            const nodeH = 142;
+            const colGap = 96;
+            const rowGap = 72;
+            const padX = 120;
+            const padY = 100;
+            const positions = new Map();
+            let maxRows = 1;
+            for (const level of sortedLevels) maxRows = Math.max(maxRows, cols.get(level).length);
+
+            for (const level of sortedLevels) {
+                const colTasks = cols.get(level);
+                colTasks.forEach((task, idx) => {
+                    positions.set(task.id, {
+                        x: padX + level * (nodeW + colGap),
+                        y: padY + idx * (nodeH + rowGap),
+                    });
+                });
+            }
+
+            const width = Math.max(1600, padX * 2 + sortedLevels.length * (nodeW + colGap));
+            const height = Math.max(700, padY * 2 + maxRows * (nodeH + rowGap));
+            return { positions, width, height, nodeW, nodeH };
+        }
+
+        function renderLiveOutput(taskList) {
+            liveOutput.innerHTML = "";
+            const finished = taskList.every((task) => ["completed", "failed", "skipped", "blocked"].includes(task.status));
+            const header = document.createElement("p");
+            header.className = "text-tertiary";
+            header.textContent = finished ? "[SYSTEM] Task graph execution finished." : "[SYSTEM] Task graph execution in progress.";
+            liveOutput.appendChild(header);
+
+            taskList.forEach((task) => {
+                const p = document.createElement("p");
+                p.className = task.status === "completed" ? "text-on-surface-variant" : task.status === "failed" ? "text-error" : "text-on-surface-variant";
+                p.textContent = "[" + (task.assignee || "UNASSIGNED").toUpperCase() + "] " + task.title + " -> " + task.status.toUpperCase();
+                liveOutput.appendChild(p);
+            });
+        }
+
+        function renderDetails(task) {
+            const metrics = task?.metrics ?? {};
+            const usage = metrics.tokenUsage ?? { input_tokens: 0, output_tokens: 0 };
+            const inTokens = usage.input_tokens ?? 0;
+            const outTokens = usage.output_tokens ?? 0;
+            const total = inTokens + outTokens;
+            const ratio = total > 0 ? Math.round((inTokens / total) * 100) : 0;
+
+            selectedAssignee.textContent = task?.assignee || "UNASSIGNED";
+            selectedState.textContent = "ACTIVE STATE: " + task.status.toUpperCase();
+            selectedStart.textContent = payload.generatedAt || "-";
+            selectedEnd.textContent = payload.generatedAt || "-";
+            selectedPromptTokens.textContent = inTokens.toLocaleString();
+            selectedCompletionTokens.textContent = outTokens.toLocaleString();
+            selectedTokenRatio.style.width = ratio + "%";
+        }
+
+        function makeEdgePath(x1, y1, x2, y2) {
+            return "M " + x1 + " " + y1 + " C " + (x1 + 42) + " " + y1 + ", " + (x2 - 42) + " " + y2 + ", " + x2 + " " + y2;
+        }
+
+        function renderDag(taskList) {
+            const { positions, width, height, nodeW, nodeH } = layoutTasks(taskList);
+            canvas.style.width = width + "px";
+            canvas.style.height = height + "px";
+
+            edgesLayer.setAttribute("viewBox", "0 0 " + width + " " + height);
+            edgesLayer.innerHTML = "";
+            const defs = document.createElementNS(svgNs, "defs");
+            const marker = document.createElementNS(svgNs, "marker");
+            marker.setAttribute("id", "arrow");
+            marker.setAttribute("markerWidth", "8");
+            marker.setAttribute("markerHeight", "8");
+            marker.setAttribute("refX", "7");
+            marker.setAttribute("refY", "4");
+            marker.setAttribute("orient", "auto");
+            const markerPath = document.createElementNS(svgNs, "path");
+            markerPath.setAttribute("d", "M0,0 L8,4 L0,8 z");
+            markerPath.setAttribute("fill", "#40485d");
+            marker.appendChild(markerPath);
+            defs.appendChild(marker);
+            edgesLayer.appendChild(defs);
+
+            taskList.forEach((task) => {
+                const to = positions.get(task.id);
+                (task.dependsOn || []).forEach((depId) => {
+                    const from = positions.get(depId);
+                    if (!from || !to) return;
+                    const edge = document.createElementNS(svgNs, "path");
+                    edge.setAttribute("d", makeEdgePath(from.x + nodeW, from.y + nodeH / 2, to.x, to.y + nodeH / 2));
+                    edge.setAttribute("fill", "none");
+                    edge.setAttribute("stroke", "#40485d");
+                    edge.setAttribute("stroke-width", "2");
+                    edge.setAttribute("marker-end", "url(#arrow)");
+                    edgesLayer.appendChild(edge);
+                });
+            });
+
+            nodesLayer.innerHTML = "";
+            taskList.forEach((task, idx) => {
+                const pos = positions.get(task.id);
+                const status = statusStyles[task.status] || statusStyles.pending;
+                const nodeId = "#NODE_" + String(idx + 1).padStart(3, "0");
+                const chips = [task.assignee ? task.assignee.toUpperCase() : "UNASSIGNED", status.chip];
+
+                const node = document.createElement("div");
+                node.className = "node absolute w-64 border-l-2 p-4 cursor-pointer " + status.border + " " + status.container;
+                node.style.left = pos.x + "px";
+                node.style.top = pos.y + "px";
+                node.innerHTML = \`
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-mono \${status.iconColor}">\${nodeId}</span>
+                        <span class="material-symbols-outlined \${status.iconColor} text-lg \${status.spin ? "animate-spin" : ""}" data-icon="\${status.icon}">\${status.icon}</span>
+                    </div>
+                    <h3 class="font-headline font-bold text-sm tracking-tight mb-1">\${task.title}</h3>
+                    <p class="text-xs \${status.statusColor} mb-4">STATUS: \${durationText(task)}</p>
+                    <div class="flex gap-2">
+                        \${chips.map((chip) => '<span class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">' + chip + '</span>').join("")}
+                    </div>
+                \`;
+                node.addEventListener("click", () => {
+                    renderDetails(task);
+                    panel.classList.remove("hidden");
+                });
+                nodesLayer.appendChild(node);
+            });
+
+            renderLiveOutput(taskList);
+            if (taskList.length > 0) {
+                renderDetails(taskList[0]);
+            }
+        }
+
+        renderDag(tasks);
+    </script>
+    <script>
+        const panel = document.getElementById("detailsPanel");
+        const closeBtn = document.getElementById("closePanel");
+        const nodes = document.querySelectorAll(".node");
+
+        nodes.forEach((node) => {
+            node.addEventListener("click", () => {
+                panel.classList.remove("hidden");
+            });
+        });
+
+        closeBtn.addEventListener("click", () => {
+            panel.classList.add("hidden");
+        });
+
+        document.addEventListener("click", (e) => {
+            const isClickInsidePanel = panel.contains(e.target);
+            const isNode = e.target.closest(".node");
+
+            if (!isClickInsidePanel && !isNode) {
+                panel.classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+</html>`
+}
+
+async function writeRunTeamDashboard(goal: string, tasks: DashboardTaskNode[]): Promise<string> {
+  const directory = join(process.cwd(), 'oma-dashboards')
+  await mkdir(directory, { recursive: true })
+  const stamp = new Date().toISOString().replaceAll(':', '-')
+  const path = join(directory, `runTeam-${stamp}.html`)
+  await writeFile(path, buildRunTeamDashboardHtml(goal, tasks), 'utf8')
+  return path
 }
 
 /**
@@ -405,6 +912,7 @@ interface RunContext {
   readonly maxTokenBudget?: number
   budgetExceededTriggered: boolean
   budgetExceededReason?: string
+  readonly taskMetrics: Map<string, DashboardTaskMetrics>
 }
 
 /**
@@ -510,7 +1018,7 @@ async function executeQueue(
         ? { onTrace: config.onTrace, runId: ctx.runId ?? '', taskId: task.id, traceAgent: assignee, abortSignal: ctx.abortSignal }
         : ctx.abortSignal ? { abortSignal: ctx.abortSignal } : undefined
 
-      const taskStartMs = config.onTrace ? Date.now() : 0
+      const taskStartMs = Date.now()
       let retryCount = 0
 
       const result = await executeWithRetry(
@@ -545,6 +1053,11 @@ async function executeQueue(
       }
 
       ctx.agentResults.set(`${assignee}:${task.id}`, result)
+      ctx.taskMetrics.set(task.id, {
+        durationMs: Math.max(0, Date.now() - taskStartMs),
+        tokenUsage: result.tokenUsage,
+        toolCalls: result.toolCalls,
+      })
       ctx.cumulativeUsage = addUsage(ctx.cumulativeUsage, result.tokenUsage)
       const totalTokens = ctx.cumulativeUsage.input_tokens + ctx.cumulativeUsage.output_tokens
       if (
@@ -701,6 +1214,26 @@ export class OpenMultiAgent {
 
   private readonly teams: Map<string, Team> = new Map()
   private completedTaskCount = 0
+
+  private async emitRunTeamDashboard(
+    goal: string,
+    tasks: Task[],
+    taskMetrics: Map<string, DashboardTaskMetrics>,
+  ): Promise<void> {
+    const dashboardTasks: DashboardTaskNode[] = tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      assignee: task.assignee,
+      status: task.status,
+      dependsOn: task.dependsOn ?? [],
+      metrics: taskMetrics.get(task.id),
+    }))
+    const htmlPath = await writeRunTeamDashboard(goal, dashboardTasks)
+    this.config.onProgress?.({
+      type: 'message',
+      data: { kind: 'runTeam_dashboard', path: htmlPath },
+    } satisfies OrchestratorEvent)
+  }
 
   /**
    * @param config - Optional top-level configuration.
@@ -922,6 +1455,27 @@ export class OpenMultiAgent {
 
       const agentResults = new Map<string, AgentRunResult>()
       agentResults.set(bestAgent.name, result)
+      await this.emitRunTeamDashboard(
+        goal,
+        [{
+          id: 'short-circuit',
+          title: `Short-circuit: ${bestAgent.name}`,
+          description: goal,
+          status: result.success ? 'completed' : 'failed',
+          assignee: bestAgent.name,
+          dependsOn: [],
+          result: result.output,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }],
+        new Map<string, DashboardTaskMetrics>([
+          ['short-circuit', {
+            durationMs: 0,
+            tokenUsage: result.tokenUsage,
+            toolCalls: result.toolCalls,
+          }],
+        ]),
+      )
       return this.buildTeamRunResult(agentResults)
     }
 
@@ -977,6 +1531,7 @@ export class OpenMultiAgent {
           maxTokenBudget,
         ),
       })
+      await this.emitRunTeamDashboard(goal, [], new Map<string, DashboardTaskMetrics>())
       return this.buildTeamRunResult(agentResults)
     }
 
@@ -987,6 +1542,7 @@ export class OpenMultiAgent {
 
     const queue = new TaskQueue()
     const scheduler = new Scheduler('dependency-first')
+    const taskMetrics = new Map<string, DashboardTaskMetrics>()
 
     if (taskSpecs && taskSpecs.length > 0) {
       // Map title-based dependsOn references to real task IDs so we can
@@ -1026,10 +1582,12 @@ export class OpenMultiAgent {
       maxTokenBudget,
       budgetExceededTriggered: false,
       budgetExceededReason: undefined,
+      taskMetrics,
     }
 
     await executeQueue(queue, ctx)
     cumulativeUsage = ctx.cumulativeUsage
+    await this.emitRunTeamDashboard(goal, queue.list(), taskMetrics)
 
     // ------------------------------------------------------------------
     // Step 5: Coordinator synthesises final result
@@ -1138,6 +1696,7 @@ export class OpenMultiAgent {
       maxTokenBudget: this.config.maxTokenBudget,
       budgetExceededTriggered: false,
       budgetExceededReason: undefined,
+      taskMetrics: new Map<string, DashboardTaskMetrics>(),
     }
 
     await executeQueue(queue, ctx)

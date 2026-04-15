@@ -29,6 +29,7 @@ Set the usual provider API keys in the environment (see [README](../README.md#qu
 ### `oma run`
 
 Runs **`OpenMultiAgent.runTeam(team, goal)`**: coordinator decomposition, task queue, optional synthesis.
+Each `runTeam` call also writes a static post-execution DAG dashboard HTML to `oma-dashboards/runTeam-<timestamp>.html` in the current working directory.
 
 | Argument | Required | Description |
 |----------|----------|-------------|

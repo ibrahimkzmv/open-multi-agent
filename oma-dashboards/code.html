@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Open Multi Agent</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#faf8ff",
+                        "secondary-dim": "#ecb200",
+                        "on-primary": "#005762",
+                        "on-tertiary-fixed-variant": "#006827",
+                        "primary-fixed-dim": "#00d4ec",
+                        "tertiary-container": "#5cfd80",
+                        "secondary": "#fdc003",
+                        "primary-dim": "#00d4ec",
+                        "surface-container": "#0f1930",
+                        "on-secondary": "#553e00",
+                        "surface": "#060e20",
+                        "on-surface": "#dee5ff",
+                        "surface-container-highest": "#192540",
+                        "on-secondary-fixed-variant": "#674c00",
+                        "on-tertiary-container": "#005d22",
+                        "secondary-fixed-dim": "#f7ba00",
+                        "surface-variant": "#192540",
+                        "surface-container-low": "#091328",
+                        "secondary-container": "#785900",
+                        "tertiary-fixed-dim": "#4bee74",
+                        "on-primary-fixed-variant": "#005762",
+                        "primary-container": "#00e3fd",
+                        "surface-dim": "#060e20",
+                        "error-container": "#9f0519",
+                        "on-error-container": "#ffa8a3",
+                        "primary-fixed": "#00e3fd",
+                        "tertiary-dim": "#4bee74",
+                        "surface-container-high": "#141f38",
+                        "background": "#060e20",
+                        "surface-bright": "#1f2b49",
+                        "error-dim": "#d7383b",
+                        "on-primary-container": "#004d57",
+                        "outline": "#6d758c",
+                        "error": "#ff716c",
+                        "on-secondary-container": "#fff6ec",
+                        "on-primary-fixed": "#003840",
+                        "inverse-on-surface": "#4d556b",
+                        "secondary-fixed": "#ffca4d",
+                        "tertiary-fixed": "#5cfd80",
+                        "on-tertiary-fixed": "#004819",
+                        "surface-tint": "#81ecff",
+                        "tertiary": "#b8ffbb",
+                        "outline-variant": "#40485d",
+                        "on-error": "#490006",
+                        "on-surface-variant": "#a3aac4",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary": "#006727",
+                        "primary": "#81ecff",
+                        "on-secondary-fixed": "#443100",
+                        "inverse-primary": "#006976",
+                        "on-background": "#dee5ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .grid-pattern {
+            background-image: radial-gradient(circle, #40485d 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .node-active-glow {
+            box-shadow: 0 0 15px rgba(129, 236, 255, 0.15);
+        }
+    </style>
+</head>
+
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+
+    <!-- Main Canvas (DAG Area) -->
+    <main class="p-8 min-h-[calc(100vh-64px)] grid-pattern relative overflow-hidden flex flex-col lg:flex-row gap-6">
+        <!-- Workflow Visualization -->
+        <div id="viewport" class="flex-1 relative min-h-[600px] overflow-hidden cursor-grab">
+            <div id="canvas" class="absolute inset-0 origin-top-left">
+                <!-- SVG Lines Background Layer -->
+                <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 320 180 L 480 180" fill="none" stroke="#40485d" stroke-width="2"></path>
+                    <path d="M 680 180 L 840 120" fill="none" stroke="#40485d" stroke-width="2"></path>
+                    <path d="M 680 180 L 840 240" fill="none" stroke="#40485d" stroke-width="2"></path>
+                    <path d="M 1040 120 L 1200 180" fill="none" stroke="#40485d" stroke-width="2"></path>
+                    <path d="M 1040 240 L 1200 180" fill="none" stroke="#40485d" stroke-width="2"></path>
+                </svg>
+                <!-- Node: Architect -->
+                <div
+                    class="node absolute left-40 top-32 w-64 bg-surface-container-lowest border-l-2 border-tertiary p-4 node-active-glow group cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-mono text-tertiary">#NODE_049</span>
+                        <span class="material-symbols-outlined text-tertiary text-lg"
+                            data-icon="check_circle">check_circle</span>
+                    </div>
+                    <h3 class="font-headline font-bold text-sm tracking-tight mb-1">Architect: Design API</h3>
+                    <p class="text-xs text-on-surface-variant mb-4">STATUS: DONE (2.3s)</p>
+                    <div class="flex gap-2">
+                        <span
+                            class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">LLM-01</span>
+                        <span
+                            class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">STABLE</span>
+                    </div>
+                </div>
+                <!-- Node: Developer (Active) -->
+                <div
+                    class="node absolute left-[480px] top-32 w-64 bg-surface-container-low border-l-2 border-secondary p-4 node-active-glow border border-outline-variant/20 shadow-[0_0_20px_rgba(253,192,3,0.1)]">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-mono text-secondary">#NODE_050</span>
+                        <span class="material-symbols-outlined text-secondary text-lg animate-spin"
+                            data-icon="sync">sync</span>
+                    </div>
+                    <h3 class="font-headline font-bold text-sm tracking-tight mb-1">Developer: Implement</h3>
+                    <p class="text-xs text-secondary mb-4">STATUS: RUNNING...</p>
+                    <div class="w-full bg-surface-container-highest h-1 mb-4">
+                        <div class="bg-secondary h-full w-[65%]"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <span
+                            class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">LLM-02</span>
+                        <span
+                            class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">ACTIVE_STREAM</span>
+                    </div>
+                </div>
+                <!-- Node: Reviewer 1 (Waiting) -->
+                <div
+                    class="node absolute left-[840px] top-10 w-64 bg-surface-container-low border-l-2 border-outline p-4 opacity-60 grayscale">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-mono text-outline">#NODE_051</span>
+                        <span class="material-symbols-outlined text-outline text-lg"
+                            data-icon="hourglass_empty">hourglass_empty</span>
+                    </div>
+                    <h3 class="font-headline font-bold text-sm tracking-tight mb-1 text-on-surface-variant">Reviewer:
+                        Security</h3>
+                    <p class="text-xs text-on-surface-variant mb-4">STATUS: WAITING</p>
+                    <div class="flex gap-2">
+                        <span
+                            class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">SEC-V3</span>
+                    </div>
+                </div>
+                <!-- Node: Reviewer 2 (Waiting) -->
+                <div
+                    class="node absolute left-[840px] top-52 w-64 bg-surface-container-low border-l-2 border-outline p-4 opacity-60 grayscale">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-mono text-outline">#NODE_052</span>
+                        <span class="material-symbols-outlined text-outline text-lg"
+                            data-icon="hourglass_empty">hourglass_empty</span>
+                    </div>
+                    <h3 class="font-headline font-bold text-sm tracking-tight mb-1 text-on-surface-variant">Reviewer:
+                        Quality</h3>
+                    <p class="text-xs text-on-surface-variant mb-4">STATUS: WAITING</p>
+                    <div class="flex gap-2">
+                        <span
+                            class="px-2 py-0.5 bg-surface-variant text-[9px] font-mono text-on-surface-variant">QA-ENGINE</span>
+                    </div>
+                </div>
+                <!-- Node: Deployer (Locked) -->
+                <div
+                    class="node absolute left-[1200px] top-32 w-64 bg-surface-container-low border-l-2 border-outline p-4 opacity-40">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-mono text-outline">#NODE_053</span>
+                        <span class="material-symbols-outlined text-outline text-lg" data-icon="lock">lock</span>
+                    </div>
+                    <h3 class="font-headline font-bold text-sm tracking-tight mb-1 text-on-surface-variant">Deployer:
+                        Prod
+                    </h3>
+                    <p class="text-xs text-on-surface-variant mb-4">STATUS: BLOCKED</p>
+                </div>
+            </div>
+        </div>
+        <!-- Details Panel (Right Rail) -->
+        <aside id="detailsPanel"
+            class="hidden w-full lg:w-[400px] bg-surface-container-high p-6 flex flex-col gap-8 border-l border-outline-variant/10">
+            <div>
+                <h2 class="font-headline font-black text-lg tracking-widest mb-6 text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined" data-icon="info">info</span>
+                    NODE_DETAILS
+                </h2>
+                <button id="closePanel" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <!-- Selected Node Info -->
+                <div class="space-y-6">
+                    <div class="flex flex-col gap-1">
+                        <label
+                            class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Assigned
+                            Agent</label>
+                        <div class="flex items-center gap-4 bg-surface-container p-3">
+                            <img alt="Agent Avatar" class="w-10 h-10 object-cover border border-primary/30"
+                                data-alt="Futuristic holographic ai agent head profile with digital scanning lines and cool cyan lighting"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHyJBaLru101be5kCT8V24npSoaGAhHTiZvlv1xnORj2N6ByM3imV1kTuoQD9GS88AgGzADrvY0poHSrbotZQc_Y4PegsbmQS4-gApUrpmfOTvlmwr9yD4cLpsyZ9aAlJy7A17TwNL0kOiLqPTI2tXcXP3L6fhA9Q3vi7Zi5kL9LRi8vIVTZqoRTtcKDwneeImLaM5MV5r1DNm1OZPmg7FuD-LbMUBt_FPaQpXWwYCQ584_qtyobd_CFUlFOJHsA1Z0hcyS6qHYdPy" />
+                            <div>
+                                <p class="text-sm font-bold text-on-surface">DEVELOPER_NODE_LLM_02</p>
+                                <p class="text-[10px] font-mono text-secondary">ACTIVE STATE: INFERENCE</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Execution
+                                Start</label>
+                            <p class="text-xs font-mono bg-surface-container p-2 border-b border-outline-variant/20">
+                                14:20:02.391</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Execution
+                                End</label>
+                            <p
+                                class="text-xs font-mono bg-surface-container p-2 border-b border-outline-variant/20 text-on-surface-variant">
+                                --:--:--.---</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Token
+                            Breakdown</label>
+                        <div class="space-y-2 bg-surface-container p-4">
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-on-surface-variant">PROMPT:</span>
+                                <span class="text-on-surface">12,402</span>
+                            </div>
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-on-surface-variant">COMPLETION:</span>
+                                <span class="text-on-surface text-secondary">4,891</span>
+                            </div>
+                            <div class="w-full h-1 bg-surface-variant mt-2">
+                                <div class="bg-primary h-full w-[70%]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Terminal Logs -->
+            <div class="flex-1 flex flex-col min-h-[200px]">
+                <h2 class="font-headline font-black text-[10px] tracking-widest mb-4 text-on-surface-variant">
+                    LIVE_AGENT_OUTPUT</h2>
+                <div
+                    class="bg-surface-container-lowest flex-1 p-3 font-mono text-[10px] leading-relaxed overflow-y-auto space-y-1">
+                    <p class="text-tertiary">[SYSTEM] Initializing task dependency check...</p>
+                    <p class="text-on-surface-variant">[AGENT_02] Receiving code skeleton from Architect.</p>
+                    <p class="text-on-surface-variant">[AGENT_02] Analyzing API schemas...</p>
+                    <p class="text-secondary">[AGENT_02] Generating CRUD controllers for Entity: Product</p>
+                    <p class="text-on-surface-variant">[AGENT_02] 40% complete. Tokens/sec: 840</p>
+                    <p class="text-on-surface-variant">[AGENT_02] Memory usage: 4.2GB / 12GB</p>
+                    <div class="w-1 h-3 bg-primary animate-pulse inline-block align-middle"></div>
+                </div>
+            </div>
+        </aside>
+    </main>
+    <!-- Global Activity Rail -->
+    <div
+        class="fixed left-0 top-0 w-1 h-screen bg-gradient-to-b from-primary via-secondary to-tertiary z-[60] opacity-30">
+    </div>
+
+
+
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const viewport = document.getElementById("viewport");
+
+        let scale = 1;
+        let translate = { x: 0, y: 0 };
+
+        let isDragging = false;
+        let last = { x: 0, y: 0 };
+
+        // Apply transform
+        function updateTransform() {
+            canvas.style.transform = `
+                translate(${translate.x}px, ${translate.y}px)
+                scale(${scale})
+            `;
+        }
+
+        // Zoom with wheel
+        viewport.addEventListener("wheel", (e) => {
+            e.preventDefault();
+
+            const zoomIntensity = 0.0015;
+            const delta = -e.deltaY * zoomIntensity;
+
+            const newScale = Math.min(Math.max(0.4, scale + delta), 2.5);
+
+            // Zoom towards mouse position
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const dx = mouseX - translate.x;
+            const dy = mouseY - translate.y;
+
+            translate.x -= dx * (newScale / scale - 1);
+            translate.y -= dy * (newScale / scale - 1);
+
+            scale = newScale;
+            updateTransform();
+        });
+
+        // Drag to pan
+        viewport.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            last = { x: e.clientX, y: e.clientY };
+            viewport.classList.add("cursor-grabbing");
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+
+            const dx = e.clientX - last.x;
+            const dy = e.clientY - last.y;
+
+            translate.x += dx;
+            translate.y += dy;
+
+            last = { x: e.clientX, y: e.clientY };
+            updateTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+            isDragging = false;
+            viewport.classList.remove("cursor-grabbing");
+        });
+
+        // Init
+        updateTransform();
+    </script>
+
+
+    <script>
+        const panel = document.getElementById("detailsPanel");
+        const closeBtn = document.getElementById("closePanel");
+        const nodes = document.querySelectorAll(".node");
+
+        // Open panel on node click
+        nodes.forEach(node => {
+            node.addEventListener("click", () => {
+                panel.classList.remove("hidden");
+            });
+        });
+
+        // Close panel
+        closeBtn.addEventListener("click", () => {
+            panel.classList.add("hidden");
+        });
+
+        // Optional: click outside to close
+        document.addEventListener("click", (e) => {
+            const isClickInsidePanel = panel.contains(e.target);
+            const isNode = e.target.closest(".node");
+
+            if (!isClickInsidePanel && !isNode) {
+                panel.classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+
+</html>
