@@ -360,7 +360,6 @@ function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): 
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Assigned Agent</label>
                         <div class="flex items-center gap-4 bg-surface-container p-3">
-                            <img alt="Agent Avatar" class="w-10 h-10 object-cover border border-primary/30" data-alt="Futuristic holographic ai agent head profile with digital scanning lines and cool cyan lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHyJBaLru101be5kCT8V24npSoaGAhHTiZvlv1xnORj2N6ByM3imV1kTuoQD9GS88AgGzADrvY0poHSrbotZQc_Y4PegsbmQS4-gApUrpmfOTvlmwr9yD4cLpsyZ9aAlJy7A17TwNL0kOiLqPTI2tXcXP3L6fhA9Q3vi7Zi5kL9LRi8vIVTZqoRTtcKDwneeImLaM5MV5r1DNm1OZPmg7FuD-LbMUBt_FPaQpXWwYCQ584_qtyobd_CFUlFOJHsA1Z0hcyS6qHYdPy" />
                             <div>
                                 <p id="selectedAssignee" class="text-sm font-bold text-on-surface">-</p>
                                 <p id="selectedState" class="text-[10px] font-mono text-secondary">ACTIVE STATE: -</p>
