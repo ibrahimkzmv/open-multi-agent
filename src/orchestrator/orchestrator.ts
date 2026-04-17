@@ -208,6 +208,8 @@ function resolveTokenBudget(primary?: number, fallback?: number): number | undef
 }
 
 interface DashboardTaskMetrics {
+  readonly startMs: number
+  readonly endMs: number
   readonly durationMs: number
   readonly tokenUsage: TokenUsage
   readonly toolCalls: AgentRunResult['toolCalls']
@@ -391,6 +393,10 @@ function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): 
                             </div>
                         </div>
                     </div>
+                    <div class="flex flex-col gap-1">
+                      <label class="text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">Tool Calls</label>
+                      <p id="selectedToolCalls" class="text-xs font-mono bg-surface-container p-2 border-b border-outline-variant/20">0</p>
+                    </div>
                 </div>
             </div>
             <div class="flex-1 flex flex-col min-h-[200px]">
@@ -412,6 +418,7 @@ function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): 
         const selectedAssignee = document.getElementById("selectedAssignee");
         const selectedState = document.getElementById("selectedState");
         const selectedStart = document.getElementById("selectedStart");
+        const selectedToolCalls = document.getElementById("selectedToolCalls");
         const selectedEnd = document.getElementById("selectedEnd");
         const selectedPromptTokens = document.getElementById("selectedPromptTokens");
         const selectedCompletionTokens = document.getElementById("selectedCompletionTokens");
@@ -582,6 +589,7 @@ function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): 
 
         function renderDetails(task) {
             const metrics = task?.metrics ?? {};
+            const statusLabel = (statusStyles[task.status] || statusStyles.pending).chip;
             const usage = metrics.tokenUsage ?? { input_tokens: 0, output_tokens: 0 };
             const inTokens = usage.input_tokens ?? 0;
             const outTokens = usage.output_tokens ?? 0;
@@ -589,9 +597,13 @@ function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): 
             const ratio = total > 0 ? Math.round((inTokens / total) * 100) : 0;
 
             selectedAssignee.textContent = task?.assignee || "UNASSIGNED";
-            selectedState.textContent = "ACTIVE STATE: " + task.status.toUpperCase();
-            selectedStart.textContent = payload.generatedAt || "-";
-            selectedEnd.textContent = payload.generatedAt || "-";
+
+            selectedState.textContent = "STATE: " + statusLabel;
+            selectedStart.textContent = metrics.startMs ? new Date(metrics.startMs).toISOString() : "-";
+            selectedEnd.textContent = metrics.endMs ? new Date(metrics.endMs).toISOString() : "-";
+
+            selectedToolCalls.textContent = (metrics.toolCalls ?? []).length.toString();
+
             selectedPromptTokens.textContent = inTokens.toLocaleString();
             selectedCompletionTokens.textContent = outTokens.toLocaleString();
             selectedTokenRatio.style.width = ratio + "%";
@@ -668,9 +680,6 @@ function buildRunTeamDashboardHtml(_goal: string, _tasks: DashboardTaskNode[]): 
             });
 
             renderLiveOutput(taskList);
-            if (taskList.length > 0) {
-                renderDetails(taskList[0]);
-            }
         }
 
         renderDag(tasks);
@@ -1035,9 +1044,10 @@ async function executeQueue(
         },
       )
 
+      const taskEndMs = Date.now()
+
       // Emit task trace
       if (config.onTrace) {
-        const taskEndMs = Date.now()
         emitTrace(config.onTrace, {
           type: 'task',
           runId: ctx.runId ?? '',
@@ -1053,8 +1063,11 @@ async function executeQueue(
       }
 
       ctx.agentResults.set(`${assignee}:${task.id}`, result)
+
       ctx.taskMetrics.set(task.id, {
-        durationMs: Math.max(0, Date.now() - taskStartMs),
+        startMs: taskStartMs,
+        endMs: taskEndMs,
+        durationMs: Math.max(0, taskEndMs - taskStartMs),
         tokenUsage: result.tokenUsage,
         toolCalls: result.toolCalls,
       })
@@ -1433,7 +1446,11 @@ export class OpenMultiAgent {
           ? { ...(traceFields ?? {}), ...(abortFields ?? {}) }
           : undefined
 
+      const scStartMs = Date.now()
+      
       const result = await agent.run(goal, runOptions)
+      
+      const scEndMs = Date.now()
 
       if (result.budgetExceeded) {
         this.config.onProgress?.({
@@ -1455,6 +1472,8 @@ export class OpenMultiAgent {
 
       const agentResults = new Map<string, AgentRunResult>()
       agentResults.set(bestAgent.name, result)
+
+
       await this.emitRunTeamDashboard(
         goal,
         [{
@@ -1470,7 +1489,9 @@ export class OpenMultiAgent {
         }],
         new Map<string, DashboardTaskMetrics>([
           ['short-circuit', {
-            durationMs: 0,
+            startMs: scStartMs,
+            endMs: scEndMs,
+            durationMs: scEndMs - scStartMs,
             tokenUsage: result.tokenUsage,
             toolCalls: result.toolCalls,
           }],
