@@ -10,8 +10,9 @@
  *   3 — unexpected runtime error (including LLM errors)
  */
 
+import { mkdir, writeFile } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { OpenMultiAgent } from '../orchestrator/orchestrator.js'
@@ -312,6 +313,44 @@ function mergeOrchestrator(base: OrchestratorConfig, ...partials: OrchestratorCo
   return o
 }
 
+async function writeRunTeamDashboardFile(html: string): Promise<string> {
+  const directory = join(process.cwd(), 'oma-dashboards')
+  await mkdir(directory, { recursive: true })
+  const stamp = new Date().toISOString().replaceAll(':', '-')
+  const filePath = join(directory, `runTeam-${stamp}.html`)
+  await writeFile(filePath, html, 'utf8')
+  return filePath
+}
+
+/** Merge `onProgress` so the CLI persists DAG dashboard HTML emitted by `runTeam`. */
+function withRunTeamDashboardWriter(base: OrchestratorConfig): OrchestratorConfig {
+  const user = base.onProgress
+  return {
+    ...base,
+    onProgress: (evt) => {
+      user?.(evt)
+      if (
+        evt.type === 'message'
+        && evt.data
+        && typeof evt.data === 'object'
+        && evt.data !== null
+        && 'kind' in evt.data
+        && (evt.data as { kind?: unknown }).kind === 'runTeam_dashboard'
+        && 'html' in evt.data
+      ) {
+        const html = (evt.data as { html?: unknown }).html
+        if (typeof html === 'string') {
+          void writeRunTeamDashboardFile(html).catch((err) => {
+            process.stderr.write(
+              `oma: failed to write runTeam dashboard: ${err instanceof Error ? err.message : String(err)}\n`,
+            )
+          })
+        }
+      }
+    },
+  }
+}
+
 async function main(): Promise<number> {
   const argv = parseArgs(process.argv)
   const cmd = argv._[0]
@@ -355,7 +394,7 @@ async function main(): Promise<number> {
         orchParts.push(asOrchestratorPartial(readJson(orchPath), 'orchestrator file'))
       }
 
-      const orchestrator = new OpenMultiAgent(mergeOrchestrator({}, ...orchParts))
+      const orchestrator = new OpenMultiAgent(withRunTeamDashboardWriter(mergeOrchestrator({}, ...orchParts)))
       const team = orchestrator.createTeam(teamCfg.name, teamCfg)
       let coordinator: CoordinatorConfig | undefined
       if (coordPath) {

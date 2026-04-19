@@ -29,7 +29,10 @@ Set the usual provider API keys in the environment (see [README](../README.md#qu
 ### `oma run`
 
 Runs **`OpenMultiAgent.runTeam(team, goal)`**: coordinator decomposition, task queue, optional synthesis.
-Each `runTeam` call also writes a static post-execution DAG dashboard HTML to `oma-dashboards/runTeam-<timestamp>.html` in the current working directory.
+
+The **`oma` CLI** writes a static post-execution DAG dashboard HTML to `oma-dashboards/runTeam-<timestamp>.html` under the current working directory after each `runTeam` invocation (the library does not write files itself; it emits dashboard HTML on `onProgress`, and you can also call `renderTeamRunDashboard()` from application code — see `src/dashboard/render-team-run-dashboard.ts`).
+
+The dashboard page loads **Tailwind CSS** (Play CDN), **Google Fonts** (Space Grotesk, Inter, Material Symbols), and **Material Symbols** from the network at view time. Opening the HTML file requires an **online** environment unless you host or inline those assets yourself (a future improvement).
 
 | Argument | Required | Description |
 |----------|----------|-------------|

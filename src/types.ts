@@ -375,6 +375,39 @@ export interface TeamRunResult {
 /** Valid states for a {@link Task}. */
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked' | 'skipped'
 
+/**
+ * Metrics shown in the team-run dashboard detail panel for a single task.
+ * Mirrors execution data collected during orchestration.
+ */
+export interface DashboardTaskMetrics {
+  readonly startMs: number
+  readonly endMs: number
+  readonly durationMs: number
+  readonly tokenUsage: TokenUsage
+  readonly toolCalls: AgentRunResult['toolCalls']
+}
+
+/** Serializable task snapshot embedded in the static HTML dashboard. */
+export interface DashboardTaskNode {
+  readonly id: string
+  readonly title: string
+  readonly assignee?: string
+  readonly status: TaskStatus
+  readonly dependsOn: readonly string[]
+  readonly metrics?: DashboardTaskMetrics
+}
+
+/**
+ * Input to {@link renderTeamRunDashboard} — pure data for the static HTML view.
+ * The renderer does not perform I/O.
+ */
+export interface TeamRunDashboardInput {
+  readonly goal: string
+  readonly tasks: readonly DashboardTaskNode[]
+  /** ISO-8601 timestamp; defaults to the time of rendering when omitted. */
+  readonly generatedAt?: string
+}
+
 /** A discrete unit of work tracked by the orchestrator. */
 export interface Task {
   readonly id: string
