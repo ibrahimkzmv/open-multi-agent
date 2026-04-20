@@ -34,6 +34,7 @@ export function layoutTasks<T extends LayoutTaskInput>(taskList: readonly T[]): 
 
   const levels = new Map<string, number>()
   const queue: string[] = []
+  let processed = 0
   for (const task of taskList) {
     if ((indegree.get(task.id) ?? 0) === 0) {
       levels.set(task.id, 0)
@@ -43,6 +44,7 @@ export function layoutTasks<T extends LayoutTaskInput>(taskList: readonly T[]): 
 
   while (queue.length > 0) {
     const currentId = queue.shift()!
+    processed += 1
     const baseLevel = levels.get(currentId) ?? 0
     for (const childId of children.get(currentId) ?? []) {
       const nextLevel = Math.max(levels.get(childId) ?? 0, baseLevel + 1)
@@ -52,6 +54,10 @@ export function layoutTasks<T extends LayoutTaskInput>(taskList: readonly T[]): 
         queue.push(childId)
       }
     }
+  }
+
+  if (processed !== taskList.length) {
+    throw new Error('Task dependency graph contains a cycle')
   }
 
   for (const task of taskList) {

@@ -3,6 +3,7 @@
  */
 
 import type { TeamRunResult } from '../types.js'
+import { layoutTasks } from './layout-tasks.js'
 
 /**
  * Escape serialized JSON so it can be embedded in HTML without closing a {@code <script>} tag.
@@ -14,10 +15,20 @@ export function escapeJsonForHtmlScript(json: string): string {
 
 export function renderTeamRunDashboard(result: TeamRunResult): string {
   const generatedAt = new Date().toISOString()
+  const tasks = result.tasks ?? []
+  const layout = layoutTasks(tasks)
+  const serializedPositions = Object.fromEntries(layout.positions)
   const payload = {
     generatedAt,
     goal: result.goal ?? '',
-    tasks: result.tasks ?? [],
+    tasks,
+    layout: {
+      positions: serializedPositions,
+      width: layout.width,
+      height: layout.height,
+      nodeW: layout.nodeW,
+      nodeH: layout.nodeH,
+    },
   }
   const dataJson = escapeJsonForHtmlScript(JSON.stringify(payload))
 
@@ -302,78 +313,6 @@ export function renderTeamRunDashboard(result: TeamRunResult): string {
             return task.status === "completed" ? "DONE (" + seconds + "s)" : task.status.toUpperCase();
         }
 
-        function layoutTasks(taskList) {
-            const byId = new Map(taskList.map((task) => [task.id, task]));
-            const children = new Map(taskList.map((task) => [task.id, []]));
-            const indegree = new Map();
-
-            for (const task of taskList) {
-                const deps = (task.dependsOn || []).filter((dep) => byId.has(dep));
-                indegree.set(task.id, deps.length);
-                for (const depId of deps) {
-                    children.get(depId).push(task.id);
-                }
-            }
-
-            const levels = new Map();
-            const queue = [];
-            for (const task of taskList) {
-                if ((indegree.get(task.id) ?? 0) === 0) {
-                    levels.set(task.id, 0);
-                    queue.push(task.id);
-                }
-            }
-
-            while (queue.length > 0) {
-                const currentId = queue.shift();
-                const baseLevel = levels.get(currentId) ?? 0;
-                for (const childId of children.get(currentId) || []) {
-                    const nextLevel = Math.max(levels.get(childId) ?? 0, baseLevel + 1);
-                    levels.set(childId, nextLevel);
-                    indegree.set(childId, (indegree.get(childId) ?? 1) - 1);
-                    if ((indegree.get(childId) ?? 0) === 0) {
-                        queue.push(childId);
-                    }
-                }
-            }
-
-            for (const task of taskList) {
-                if (!levels.has(task.id)) levels.set(task.id, 0);
-            }
-
-            const cols = new Map();
-            for (const task of taskList) {
-                const level = levels.get(task.id) ?? 0;
-                if (!cols.has(level)) cols.set(level, []);
-                cols.get(level).push(task);
-            }
-
-            const sortedLevels = Array.from(cols.keys()).sort((a, b) => a - b);
-            const nodeW = 256;
-            const nodeH = 142;
-            const colGap = 96;
-            const rowGap = 72;
-            const padX = 120;
-            const padY = 100;
-            const positions = new Map();
-            let maxRows = 1;
-            for (const level of sortedLevels) maxRows = Math.max(maxRows, cols.get(level).length);
-
-            for (const level of sortedLevels) {
-                const colTasks = cols.get(level);
-                colTasks.forEach((task, idx) => {
-                    positions.set(task.id, {
-                        x: padX + level * (nodeW + colGap),
-                        y: padY + idx * (nodeH + rowGap),
-                    });
-                });
-            }
-
-            const width = Math.max(1600, padX * 2 + sortedLevels.length * (nodeW + colGap));
-            const height = Math.max(700, padY * 2 + maxRows * (nodeH + rowGap));
-            return { positions, width, height, nodeW, nodeH };
-        }
-
         function renderLiveOutput(taskList) {
             liveOutput.innerHTML = "";
             const finished = taskList.every((task) => ["completed", "failed", "skipped", "blocked"].includes(task.status));
@@ -417,7 +356,12 @@ export function renderTeamRunDashboard(result: TeamRunResult): string {
         }
 
         function renderDag(taskList) {
-            const { positions, width, height, nodeW, nodeH } = layoutTasks(taskList);
+            const rawLayout = payload.layout ?? {};
+            const positions = new Map(Object.entries(rawLayout.positions ?? {}));
+            const width = Number(rawLayout.width ?? 1600);
+            const height = Number(rawLayout.height ?? 700);
+            const nodeW = Number(rawLayout.nodeW ?? 256);
+            const nodeH = Number(rawLayout.nodeH ?? 142);
             canvas.style.width = width + "px";
             canvas.style.height = height + "px";
 

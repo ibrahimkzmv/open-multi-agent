@@ -58,9 +58,7 @@ export { OpenMultiAgent, executeWithRetry, computeRetryDelay } from './orchestra
 export { Scheduler } from './orchestrator/scheduler.js'
 export type { SchedulingStrategy } from './orchestrator/scheduler.js'
 
-export { renderTeamRunDashboard, escapeJsonForHtmlScript } from './dashboard/render-team-run-dashboard.js'
-export { layoutTasks } from './dashboard/layout-tasks.js'
-export type { LayoutTasksResult, LayoutTaskInput } from './dashboard/layout-tasks.js'
+export { renderTeamRunDashboard } from './dashboard/render-team-run-dashboard.js'
 
 // ---------------------------------------------------------------------------
 // Agent layer

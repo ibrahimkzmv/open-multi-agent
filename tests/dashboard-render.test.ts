@@ -35,4 +35,58 @@ describe('renderTeamRunDashboard', () => {
     expect(beforeData).not.toContain(malicious)
     expect(beforeData.toLowerCase()).not.toMatch(/\sonerror\s*=/)
   })
+
+  it('keeps task description text in JSON payload', () => {
+    const description = 'danger: </script><svg onload=alert(1)>'
+    const html = renderTeamRunDashboard({
+      success: true,
+      goal: 'safe-goal',
+      tasks: [
+        {
+          id: 't1',
+          title: 'task',
+          description,
+          status: 'pending',
+          dependsOn: [],
+        } as { id: string; title: string; description: string; status: 'pending'; dependsOn: string[] },
+      ],
+      agentResults: new Map(),
+      totalTokenUsage: { input_tokens: 0, output_tokens: 0 },
+    })
+
+    const start = html.indexOf('id="oma-data">')
+    const contentStart = start + 'id="oma-data">'.length
+    const end = html.indexOf('</script>', contentStart)
+    const parsed = JSON.parse(html.slice(contentStart, end)) as {
+      tasks: Array<{ description?: string }>
+    }
+    expect(parsed.tasks[0]!.description).toBe(description)
+  })
+
+  it('keeps task result text in JSON payload', () => {
+    const result = 'final output </script><img src=x onerror=alert(1)>'
+    const html = renderTeamRunDashboard({
+      success: true,
+      goal: 'safe-goal',
+      tasks: [
+        {
+          id: 't1',
+          title: 'task',
+          result,
+          status: 'completed',
+          dependsOn: [],
+        } as { id: string; title: string; result: string; status: 'completed'; dependsOn: string[] },
+      ],
+      agentResults: new Map(),
+      totalTokenUsage: { input_tokens: 0, output_tokens: 0 },
+    })
+
+    const start = html.indexOf('id="oma-data">')
+    const contentStart = start + 'id="oma-data">'.length
+    const end = html.indexOf('</script>', contentStart)
+    const parsed = JSON.parse(html.slice(contentStart, end)) as {
+      tasks: Array<{ result?: string }>
+    }
+    expect(parsed.tasks[0]!.result).toBe(result)
+  })
 })

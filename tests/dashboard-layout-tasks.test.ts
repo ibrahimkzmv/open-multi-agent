@@ -35,4 +35,12 @@ describe('layoutTasks', () => {
     expect(positions.get('a')!.x).toBe(positions.get('b')!.x)
     expect(positions.get('a')!.y).not.toBe(positions.get('b')!.y)
   })
+
+  it('throws when task dependencies contain a cycle', () => {
+    const tasks = [
+      { id: 'a', dependsOn: ['b'] as const },
+      { id: 'b', dependsOn: ['a'] as const },
+    ]
+    expect(() => layoutTasks(tasks)).toThrow('Task dependency graph contains a cycle')
+  })
 })

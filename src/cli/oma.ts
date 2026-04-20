@@ -320,7 +320,7 @@ function mergeOrchestrator(base: OrchestratorConfig, ...partials: OrchestratorCo
 async function writeRunTeamDashboardFile(html: string): Promise<string> {
   const directory = join(process.cwd(), 'oma-dashboards')
   await mkdir(directory, { recursive: true })
-  const stamp = new Date().toISOString().replaceAll(':', '-')
+  const stamp = new Date().toISOString().replaceAll(':', '-').replace('.', '-')
   const filePath = join(directory, `runTeam-${stamp}.html`)
   await writeFile(filePath, html, 'utf8')
   return filePath
