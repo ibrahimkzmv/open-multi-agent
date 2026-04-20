@@ -45,18 +45,17 @@ import type {
   AgentConfig,
   AgentRunResult,
   CoordinatorConfig,
-  DashboardTaskMetrics,
-  DashboardTaskNode,
   OrchestratorConfig,
   OrchestratorEvent,
   Task,
+  TaskExecutionMetrics,
+  TaskExecutionRecord,
   TaskStatus,
   TeamConfig,
   TeamRunResult,
   TokenUsage,
 } from '../types.js'
 import type { RunOptions } from '../agent/runner.js'
-import { renderTeamRunDashboard } from '../dashboard/render-team-run-dashboard.js'
 import { Agent } from '../agent/agent.js'
 import { AgentPool } from '../agent/pool.js'
 import { emitTrace, generateRunId } from '../utils/trace.js'
@@ -408,7 +407,7 @@ interface RunContext {
   readonly maxTokenBudget?: number
   budgetExceededTriggered: boolean
   budgetExceededReason?: string
-  readonly taskMetrics: Map<string, DashboardTaskMetrics>
+  readonly taskMetrics: Map<string, TaskExecutionMetrics>
 }
 
 /**
@@ -715,14 +714,6 @@ export class OpenMultiAgent {
   private readonly teams: Map<string, Team> = new Map()
   private completedTaskCount = 0
 
-  private emitRunTeamDashboard(goal: string, nodes: readonly DashboardTaskNode[]): void {
-    const html = renderTeamRunDashboard({ goal, tasks: nodes })
-    this.config.onProgress?.({
-      type: 'message',
-      data: { kind: 'runTeam_dashboard', html },
-    } satisfies OrchestratorEvent)
-  }
-
   /**
    * @param config - Optional top-level configuration.
    *
@@ -947,7 +938,7 @@ export class OpenMultiAgent {
       agentResults.set(bestAgent.name, result)
 
 
-      this.emitRunTeamDashboard(goal, [{
+      const tasks: readonly TaskExecutionRecord[] = [{
         id: 'short-circuit',
         title: `Short-circuit: ${bestAgent.name}`,
         assignee: bestAgent.name,
@@ -960,8 +951,8 @@ export class OpenMultiAgent {
           tokenUsage: result.tokenUsage,
           toolCalls: result.toolCalls,
         },
-      }])
-      return this.buildTeamRunResult(agentResults)
+      }]
+      return this.buildTeamRunResult(agentResults, goal, tasks)
     }
 
     // ------------------------------------------------------------------
@@ -1016,8 +1007,7 @@ export class OpenMultiAgent {
           maxTokenBudget,
         ),
       })
-      this.emitRunTeamDashboard(goal, [])
-      return this.buildTeamRunResult(agentResults)
+      return this.buildTeamRunResult(agentResults, goal, [])
     }
 
     // ------------------------------------------------------------------
@@ -1027,7 +1017,7 @@ export class OpenMultiAgent {
 
     const queue = new TaskQueue()
     const scheduler = new Scheduler('dependency-first')
-    const taskMetrics = new Map<string, DashboardTaskMetrics>()
+    const taskMetrics = new Map<string, TaskExecutionMetrics>()
 
     if (taskSpecs && taskSpecs.length > 0) {
       // Map title-based dependsOn references to real task IDs so we can
@@ -1072,17 +1062,14 @@ export class OpenMultiAgent {
 
     await executeQueue(queue, ctx)
     cumulativeUsage = ctx.cumulativeUsage
-    this.emitRunTeamDashboard(
-      goal,
-      queue.list().map((task) => ({
-        id: task.id,
-        title: task.title,
-        assignee: task.assignee,
-        status: task.status,
-        dependsOn: task.dependsOn ?? [],
-        metrics: taskMetrics.get(task.id),
-      })),
-    )
+    const taskRecords: readonly TaskExecutionRecord[] = queue.list().map((task) => ({
+      id: task.id,
+      title: task.title,
+      assignee: task.assignee,
+      status: task.status,
+      dependsOn: task.dependsOn ?? [],
+      metrics: taskMetrics.get(task.id),
+    }))
 
     // ------------------------------------------------------------------
     // Step 5: Coordinator synthesises final result
@@ -1091,7 +1078,7 @@ export class OpenMultiAgent {
       maxTokenBudget !== undefined
       && cumulativeUsage.input_tokens + cumulativeUsage.output_tokens > maxTokenBudget
     ) {
-      return this.buildTeamRunResult(agentResults)
+      return this.buildTeamRunResult(agentResults, goal, taskRecords)
     }
     const synthesisPrompt = await this.buildSynthesisPrompt(goal, queue.list(), team)
     const synthTraceOptions: Partial<RunOptions> | undefined = this.config.onTrace
@@ -1125,7 +1112,7 @@ export class OpenMultiAgent {
     // Only actual user tasks (non-coordinator keys) are counted in
     // buildTeamRunResult, so we do not increment completedTaskCount here.
 
-    return this.buildTeamRunResult(agentResults)
+    return this.buildTeamRunResult(agentResults, goal, taskRecords)
   }
 
   // -------------------------------------------------------------------------
@@ -1191,12 +1178,21 @@ export class OpenMultiAgent {
       maxTokenBudget: this.config.maxTokenBudget,
       budgetExceededTriggered: false,
       budgetExceededReason: undefined,
-      taskMetrics: new Map<string, DashboardTaskMetrics>(),
+      taskMetrics: new Map<string, TaskExecutionMetrics>(),
     }
 
     await executeQueue(queue, ctx)
 
-    return this.buildTeamRunResult(agentResults)
+    const taskRecords: readonly TaskExecutionRecord[] = queue.list().map((task) => ({
+      id: task.id,
+      title: task.title,
+      assignee: task.assignee,
+      status: task.status,
+      dependsOn: task.dependsOn ?? [],
+      metrics: ctx.taskMetrics.get(task.id),
+    }))
+
+    return this.buildTeamRunResult(agentResults, undefined, taskRecords)
   }
 
   // -------------------------------------------------------------------------
@@ -1475,6 +1471,8 @@ export class OpenMultiAgent {
    */
   private buildTeamRunResult(
     agentResults: Map<string, AgentRunResult>,
+    goal?: string,
+    tasks?: readonly TaskExecutionRecord[],
   ): TeamRunResult {
     let totalUsage: TokenUsage = ZERO_USAGE
     let overallSuccess = true
@@ -1512,6 +1510,8 @@ export class OpenMultiAgent {
 
     return {
       success: overallSuccess,
+      goal,
+      tasks,
       agentResults: collapsed,
       totalTokenUsage: totalUsage,
     }

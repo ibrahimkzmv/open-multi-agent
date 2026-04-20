@@ -2,7 +2,7 @@
  * Pure HTML renderer for the post-run team task DAG dashboard (no filesystem or network I/O).
  */
 
-import type { TeamRunDashboardInput } from '../types.js'
+import type { TeamRunResult } from '../types.js'
 
 /**
  * Escape serialized JSON so it can be embedded in HTML without closing a {@code <script>} tag.
@@ -12,12 +12,12 @@ export function escapeJsonForHtmlScript(json: string): string {
   return json.replace(/<\/script/gi, '<\\/script')
 }
 
-export function renderTeamRunDashboard(input: TeamRunDashboardInput): string {
-  const generatedAt = input.generatedAt ?? new Date().toISOString()
+export function renderTeamRunDashboard(result: TeamRunResult): string {
+  const generatedAt = new Date().toISOString()
   const payload = {
     generatedAt,
-    goal: input.goal,
-    tasks: input.tasks,
+    goal: result.goal ?? '',
+    tasks: result.tasks ?? [],
   }
   const dataJson = escapeJsonForHtmlScript(JSON.stringify(payload))
 

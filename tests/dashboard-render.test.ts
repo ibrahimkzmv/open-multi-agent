@@ -5,6 +5,7 @@ describe('renderTeamRunDashboard', () => {
   it('does not embed unescaped script terminators in the JSON payload and keeps XSS payloads out of HTML markup', () => {
     const malicious = '"</script><img src=x onerror=alert(1)>"'
     const html = renderTeamRunDashboard({
+      success: true,
       goal: 'safe-goal',
       tasks: [
         {
@@ -14,6 +15,8 @@ describe('renderTeamRunDashboard', () => {
           dependsOn: [],
         },
       ],
+      agentResults: new Map(),
+      totalTokenUsage: { input_tokens: 0, output_tokens: 0 },
     })
 
     const dataOpen = 'id="oma-data">'

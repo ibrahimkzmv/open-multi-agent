@@ -16,6 +16,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { OpenMultiAgent } from '../orchestrator/orchestrator.js'
+import { renderTeamRunDashboard } from '../dashboard/render-team-run-dashboard.js'
 import type { SupportedProvider } from '../llm/adapter.js'
 import type { AgentRunResult, CoordinatorConfig, OrchestratorConfig, TeamConfig, TeamRunResult } from '../types.js'
 
@@ -223,6 +224,8 @@ export function serializeTeamRunResult(result: TeamRunResult, opts: CliJsonOptio
   }
   return {
     success: result.success,
+    goal: result.goal,
+    tasks: result.tasks,
     totalTokenUsage: result.totalTokenUsage,
     agentResults,
   }
@@ -245,6 +248,7 @@ function help(): string {
     'Flags:',
     '  --pretty              Pretty-print JSON to stdout',
     '  --include-messages    Include full LLM message arrays in run output (large)',
+    '  --dashboard           Write team-run DAG HTML dashboard to oma-dashboards/',
     '',
     'team.json may be a TeamConfig object, or { "team": TeamConfig, "orchestrator": { ... } }.',
     'tasks.json: { "team": TeamConfig, "tasks": [ ... ], "orchestrator"?: { ... } }.',
@@ -322,40 +326,12 @@ async function writeRunTeamDashboardFile(html: string): Promise<string> {
   return filePath
 }
 
-/** Merge `onProgress` so the CLI persists DAG dashboard HTML emitted by `runTeam`. */
-function withRunTeamDashboardWriter(base: OrchestratorConfig): OrchestratorConfig {
-  const user = base.onProgress
-  return {
-    ...base,
-    onProgress: (evt) => {
-      user?.(evt)
-      if (
-        evt.type === 'message'
-        && evt.data
-        && typeof evt.data === 'object'
-        && evt.data !== null
-        && 'kind' in evt.data
-        && (evt.data as { kind?: unknown }).kind === 'runTeam_dashboard'
-        && 'html' in evt.data
-      ) {
-        const html = (evt.data as { html?: unknown }).html
-        if (typeof html === 'string') {
-          void writeRunTeamDashboardFile(html).catch((err) => {
-            process.stderr.write(
-              `oma: failed to write runTeam dashboard: ${err instanceof Error ? err.message : String(err)}\n`,
-            )
-          })
-        }
-      }
-    },
-  }
-}
-
 async function main(): Promise<number> {
   const argv = parseArgs(process.argv)
   const cmd = argv._[0]
   const pretty = argv.flags.has('pretty')
   const includeMessages = argv.flags.has('include-messages')
+  const dashboard = argv.flags.has('dashboard')
 
   if (cmd === undefined || cmd === 'help' || cmd === '-h' || cmd === '--help') {
     process.stdout.write(`${help()}\n`)
@@ -394,13 +370,23 @@ async function main(): Promise<number> {
         orchParts.push(asOrchestratorPartial(readJson(orchPath), 'orchestrator file'))
       }
 
-      const orchestrator = new OpenMultiAgent(withRunTeamDashboardWriter(mergeOrchestrator({}, ...orchParts)))
+      const orchestrator = new OpenMultiAgent(mergeOrchestrator({}, ...orchParts))
       const team = orchestrator.createTeam(teamCfg.name, teamCfg)
       let coordinator: CoordinatorConfig | undefined
       if (coordPath) {
         coordinator = asCoordinatorPartial(readJson(coordPath), 'coordinator file')
       }
       const result = await orchestrator.runTeam(team, goal, coordinator ? { coordinator } : undefined)
+      if (dashboard) {
+        const html = renderTeamRunDashboard(result)
+        try {
+          await writeRunTeamDashboardFile(html)
+        } catch (err) {
+          process.stderr.write(
+            `oma: failed to write runTeam dashboard: ${err instanceof Error ? err.message : String(err)}\n`,
+          )
+        }
+      }
       await orchestrator.shutdown()
       const payload = { command: 'run' as const, ...serializeTeamRunResult(result, jsonOpts) }
       printJson(payload, pretty)

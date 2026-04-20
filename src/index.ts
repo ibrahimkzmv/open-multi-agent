@@ -165,9 +165,8 @@ export type {
   TeamRunResult,
 
   // Dashboard (static HTML)
-  DashboardTaskMetrics,
-  DashboardTaskNode,
-  TeamRunDashboardInput,
+  TaskExecutionMetrics,
+  TaskExecutionRecord,
 
   // Task
   Task,
