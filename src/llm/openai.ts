@@ -33,6 +33,8 @@
 import OpenAI from 'openai'
 import type {
   ChatCompletionChunk,
+  ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionCreateParamsStreaming,
 } from 'openai/resources/chat/completions/index.js'
 
 import type {
@@ -93,13 +95,25 @@ export class OpenAIAdapter implements LLMAdapter {
 
     const completion = await this.#client.chat.completions.create(
       {
-        model: options.model,
-        messages: openAIMessages,
+        // Sampling params first so extraBody can override them. Structural
+        // fields (model/messages/tools/stream) come after extraBody so users
+        // cannot accidentally clobber them via extraBody.
         max_tokens: options.maxTokens,
         temperature: options.temperature,
+        frequency_penalty: options.frequencyPenalty,
+        presence_penalty: options.presencePenalty,
+        top_p: options.topP,
+        top_k: options.topK,
+        min_p: options.minP,
+        ...options.extraBody,
+        model: options.model,
+        messages: openAIMessages,
         tools: options.tools ? options.tools.map(toOpenAITool) : undefined,
         stream: false,
-      },
+        // Cast covers `top_k` / `min_p` and arbitrary `extraBody` keys, which
+        // local OpenAI-compatible servers (vLLM, llama-server) accept but the
+        // upstream SDK type does not declare.
+      } as ChatCompletionCreateParamsNonStreaming,
       {
         signal: options.abortSignal,
       },
@@ -131,14 +145,21 @@ export class OpenAIAdapter implements LLMAdapter {
     // We request usage in the final chunk so we can include it in the `done` event.
     const streamResponse = await this.#client.chat.completions.create(
       {
-        model: options.model,
-        messages: openAIMessages,
+        // See chat() above for the rationale behind this field ordering.
         max_tokens: options.maxTokens,
         temperature: options.temperature,
+        frequency_penalty: options.frequencyPenalty,
+        presence_penalty: options.presencePenalty,
+        top_p: options.topP,
+        top_k: options.topK,
+        min_p: options.minP,
+        ...options.extraBody,
+        model: options.model,
+        messages: openAIMessages,
         tools: options.tools ? options.tools.map(toOpenAITool) : undefined,
         stream: true,
         stream_options: { include_usage: true },
-      },
+      } as ChatCompletionCreateParamsStreaming,
       {
         signal: options.abortSignal,
       },

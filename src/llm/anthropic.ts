@@ -25,7 +25,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import type {
   ContentBlockParam,
   ImageBlockParam,
+  MessageCreateParamsNonStreaming,
   MessageParam,
+  MessageStreamParams,
   TextBlockParam,
   ToolResultBlockParam,
   ToolUseBlockParam,
@@ -212,13 +214,20 @@ export class AnthropicAdapter implements LLMAdapter {
 
     const response = await this.#client.messages.create(
       {
-        model: options.model,
+        // Sampling params first so extraBody can override them. Structural
+        // fields (model/messages/system/tools) come after extraBody so users
+        // cannot accidentally clobber them via extraBody.
         max_tokens: options.maxTokens ?? 4096,
+        temperature: options.temperature,
+        top_p: options.topP,
+        top_k: options.topK,
+        ...options.extraBody,
+        model: options.model,
         messages: anthropicMessages,
         system: options.systemPrompt,
         tools: options.tools ? toAnthropicTools(options.tools) : undefined,
-        temperature: options.temperature,
-      },
+        // Cast covers arbitrary `extraBody` keys not declared by the SDK.
+      } as MessageCreateParamsNonStreaming,
       {
         signal: options.abortSignal,
       },
@@ -262,13 +271,17 @@ export class AnthropicAdapter implements LLMAdapter {
     // MessageStream gives us typed events and handles SSE reconnect internally.
     const stream = this.#client.messages.stream(
       {
-        model: options.model,
+        // See chat() above for the rationale behind this field ordering.
         max_tokens: options.maxTokens ?? 4096,
+        temperature: options.temperature,
+        top_p: options.topP,
+        top_k: options.topK,
+        ...options.extraBody,
+        model: options.model,
         messages: anthropicMessages,
         system: options.systemPrompt,
         tools: options.tools ? toAnthropicTools(options.tools) : undefined,
-        temperature: options.temperature,
-      },
+      } as MessageStreamParams,
       {
         signal: options.abortSignal,
       },

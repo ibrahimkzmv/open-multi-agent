@@ -77,6 +77,33 @@ export interface RunnerOptions {
   readonly maxTokens?: number
   /** Sampling temperature passed to the adapter. */
   readonly temperature?: number
+  /** Nucleus sampling top_p. Forwarded to all adapters. */
+  readonly topP?: number
+  /**
+   * Top-k sampling. Forwarded to Anthropic and OpenAI-compatible local
+   * servers. Cloud OpenAI rejects this parameter.
+   */
+  readonly topK?: number
+  /**
+   * Min-p sampling. Only supported by OpenAI-compatible local servers.
+   * Cloud OpenAI rejects this parameter; the Anthropic adapter ignores it.
+   */
+  readonly minP?: number
+  /**
+   * Frequency penalty. Forwarded to OpenAI cloud and OpenAI-compatible local
+   * servers. The Anthropic adapter ignores this field.
+   */
+  readonly frequencyPenalty?: number
+  /**
+   * Presence penalty. Forwarded to OpenAI cloud and OpenAI-compatible local
+   * servers. The Anthropic adapter ignores this field.
+   */
+  readonly presencePenalty?: number
+  /**
+   * Adapter-specific escape hatch merged into the outgoing request payload.
+   * See {@link AgentConfig.extraBody} for the override precedence contract.
+   */
+  readonly extraBody?: Record<string, unknown>
   /** AbortSignal that cancels any in-flight adapter call and stops the loop. */
   readonly abortSignal?: AbortSignal
   /**
@@ -559,6 +586,12 @@ export class AgentRunner {
       tools: toolDefs.length > 0 ? toolDefs : undefined,
       maxTokens: this.options.maxTokens,
       temperature: this.options.temperature,
+      topP: this.options.topP,
+      topK: this.options.topK,
+      minP: this.options.minP,
+      frequencyPenalty: this.options.frequencyPenalty,
+      presencePenalty: this.options.presencePenalty,
+      extraBody: this.options.extraBody,
       systemPrompt: this.options.systemPrompt,
       abortSignal: effectiveAbortSignal,
     }

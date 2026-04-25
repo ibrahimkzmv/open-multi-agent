@@ -321,6 +321,42 @@ export interface AgentConfig {
   readonly contextStrategy?: ContextStrategy
   readonly temperature?: number
   /**
+   * OpenAI-track sampling penalty for token frequency. Forwarded to OpenAI
+   * cloud and OpenAI-compatible local servers (vLLM, llama-server). The
+   * Anthropic adapter ignores this field.
+   */
+  readonly frequencyPenalty?: number
+  /**
+   * OpenAI-track sampling penalty for token presence. Forwarded to OpenAI
+   * cloud and OpenAI-compatible local servers. The Anthropic adapter
+   * ignores this field.
+   */
+  readonly presencePenalty?: number
+  /**
+   * Nucleus sampling cutoff. Forwarded to all adapters (OpenAI cloud,
+   * OpenAI-compatible local, Anthropic).
+   */
+  readonly topP?: number
+  /**
+   * Top-k sampling cutoff. Forwarded to Anthropic and OpenAI-compatible
+   * local servers. Cloud OpenAI rejects this parameter.
+   */
+  readonly topK?: number
+  /**
+   * Min-p sampling cutoff. Only supported by OpenAI-compatible local
+   * servers (vLLM, llama-server, etc.). Cloud OpenAI rejects this parameter
+   * and the Anthropic adapter ignores it.
+   */
+  readonly minP?: number
+  /**
+   * Adapter-specific escape hatch merged into the outgoing request payload.
+   * Spread between the sampling params and the structural fields, so values
+   * here can override the standard sampling defaults (`temperature`, `topP`,
+   * etc.) but cannot override transport-level fields (`model`, `messages`,
+   * `tools`, `stream`, and Anthropic's `system`).
+   */
+  readonly extraBody?: Record<string, unknown>
+  /**
    * Maximum wall-clock time (in milliseconds) for the entire agent run.
    * When exceeded, the run is aborted via `AbortSignal.timeout()`.
    * Useful for local models where inference can be unpredictably slow.
@@ -623,6 +659,24 @@ export interface CoordinatorConfig {
   readonly maxTurns?: number
   readonly maxTokens?: number
   readonly temperature?: number
+  /** See {@link AgentConfig.frequencyPenalty}. */
+  readonly frequencyPenalty?: number
+  /** See {@link AgentConfig.presencePenalty}. */
+  readonly presencePenalty?: number
+  /** See {@link AgentConfig.topP}. */
+  readonly topP?: number
+  /** See {@link AgentConfig.topK}. */
+  readonly topK?: number
+  /** See {@link AgentConfig.minP}. */
+  readonly minP?: number
+  /**
+   * Adapter-specific escape hatch merged into the outgoing request payload.
+   * Spread between the sampling params and the structural fields, so values
+   * here can override the standard sampling defaults (`temperature`, `topP`,
+   * etc.) but cannot override transport-level fields (`model`, `messages`,
+   * `tools`, `stream`, and Anthropic's `system`).
+   */
+  readonly extraBody?: Record<string, unknown>
   /** Predefined tool preset for common coordinator use cases. */
   readonly toolPreset?: 'readonly' | 'readwrite' | 'full'
   /** Tool names available to the coordinator. */
@@ -728,6 +782,24 @@ export interface LLMChatOptions {
   readonly tools?: readonly LLMToolDef[]
   readonly maxTokens?: number
   readonly temperature?: number
+  /** See {@link AgentConfig.frequencyPenalty}. */
+  readonly frequencyPenalty?: number
+  /** See {@link AgentConfig.presencePenalty}. */
+  readonly presencePenalty?: number
+  /** See {@link AgentConfig.topP}. */
+  readonly topP?: number
+  /** See {@link AgentConfig.topK}. */
+  readonly topK?: number
+  /** See {@link AgentConfig.minP}. */
+  readonly minP?: number
+  /**
+   * Adapter-specific escape hatch merged into the outgoing request payload.
+   * Spread between the sampling params and the structural fields, so values
+   * here can override the standard sampling defaults (`temperature`, `topP`,
+   * etc.) but cannot override transport-level fields (`model`, `messages`,
+   * `tools`, `stream`, and Anthropic's `system`).
+   */
+  readonly extraBody?: Record<string, unknown>
   readonly systemPrompt?: string
   readonly abortSignal?: AbortSignal
 }
