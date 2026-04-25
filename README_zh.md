@@ -1,80 +1,73 @@
-# Open Multi-Agent
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/brand/logo-mark-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/brand/logo-mark-light.svg">
+    <img alt="Open Multi-Agent" src=".github/brand/logo-mark-light.svg" width="96">
+  </picture>
+</p>
 
-TypeScript 里的轻量多智能体编排引擎。3 个运行时依赖，零配置，一次 `runTeam()` 从目标拿到结果。
+<h1 align="center">Open Multi-Agent</h1>
 
-CrewAI 是 Python。LangGraph 要你自己画图。`open-multi-agent` 是你现有 Node.js 后端里 `npm install` 一下就能用的那一层：一支 agent 团队围绕一个目标协作，就这些。
+<p align="center">
+  面向 TypeScript 的轻量多智能体编排框架。
+</p>
 
-[![npm version](https://img.shields.io/npm/v/@jackchen_me/open-multi-agent)](https://www.npmjs.com/package/@jackchen_me/open-multi-agent)
-[![GitHub stars](https://img.shields.io/github/stars/JackChen-me/open-multi-agent)](https://github.com/JackChen-me/open-multi-agent/stargazers)
-[![license](https://img.shields.io/github/license/JackChen-me/open-multi-agent)](./LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
-[![runtime deps](https://img.shields.io/badge/runtime_deps-3-brightgreen)](https://github.com/JackChen-me/open-multi-agent/blob/main/package.json)
-[![codecov](https://codecov.io/gh/JackChen-me/open-multi-agent/graph/badge.svg)](https://codecov.io/gh/JackChen-me/open-multi-agent)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@jackchen_me/open-multi-agent"><img src="https://img.shields.io/npm/v/@jackchen_me/open-multi-agent" alt="npm version"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/JackChen-me/open-multi-agent" alt="license"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.6-blue" alt="TypeScript"></a>
+  <a href="https://codecov.io/gh/JackChen-me/open-multi-agent"><img src="https://codecov.io/gh/JackChen-me/open-multi-agent/graph/badge.svg" alt="codecov"></a>
+  <a href="https://github.com/JackChen-me/open-multi-agent/blob/main/package.json"><img src="https://img.shields.io/badge/runtime_deps-3-brightgreen" alt="runtime deps"></a>
+  <a href="https://github.com/JackChen-me/open-multi-agent/stargazers"><img src="https://img.shields.io/github/stars/JackChen-me/open-multi-agent" alt="GitHub stars"></a>
+</p>
 
-[English](./README.md) | **中文**
+<p align="center">
+  <a href="./README.md">English</a> · <strong>中文</strong>
+</p>
 
-## 核心能力
+---
 
-- `runTeam(team, "构建一个 REST API")` 下去，协调者 agent 会把目标拆成任务 DAG，独立任务并行跑，再把结果合起来。不用画图，不用手动连依赖。
-- 运行时依赖就三个：`@anthropic-ai/sdk`、`openai`、`zod`。能直接塞进 Express、Next.js、Serverless 或 CI/CD，不起 Python 进程，也不跑云端 sidecar。
-- 同一个团队里的 agent 能挂不同模型：架构师用 Opus 4.7、开发用 GPT-5.4、评审跑本地 Gemma 4 都行。支持 Claude、GPT、Gemini、Grok、MiniMax、DeepSeek、Copilot，以及 OpenAI 兼容的本地模型（Ollama、vLLM、LM Studio、llama.cpp）。用 Gemini 要额外装 `@google/genai`。
+`open-multi-agent` 是面向 TypeScript 后端的多智能体编排框架。给定一个目标，协调者 agent 会将其拆解为任务 DAG，并行执行独立任务，合成最终结果。仅 3 个运行时依赖，可直接嵌入任意现有 Node.js 后端，让工程师专注于目标，而非任务图。
 
-还有 MCP、上下文策略、结构化输出、任务重试、human-in-the-loop、生命周期 hook、循环检测、可观测性等，下面章节或 [`examples/`](./examples/) 里都有。
+## 功能一览
 
-## 和其他框架怎么选
-
-如果你在看 [LangGraph JS](https://github.com/langchain-ai/langgraphjs)：它是声明式图编排，自己定义节点、边、路由，`compile()` + `invoke()`。`open-multi-agent` 反过来，目标驱动：给一个团队和一个目标，协调者在运行时拆 DAG。想完全控拓扑、流程定下来的用 LangGraph；想写得少、迭代快、还在探索的选这个。LangGraph 有成熟 checkpoint，我们没做。
-
-Python 栈直接用 [CrewAI](https://github.com/crewAIInc/crewAI) 就行，编排层能力差不多。`open-multi-agent` 的定位是 TypeScript 原生：3 个依赖、直接进 Node.js、不用子进程桥接。按语言选。
-
-和 [Vercel AI SDK](https://github.com/vercel/ai) 不冲突。AI SDK 是 LLM 调用层，统一的 TypeScript 客户端，60+ provider，带流式、tool call、结构化输出，但不做多智能体编排。要多 agent，把 `open-multi-agent` 叠在 AI SDK 上面就行。单 agent 用 AI SDK，多 agent 用这个。
-
-## 生态
-
-项目 2026-04-01 发布，MIT 协议。生态还在成型，下面的列表不长，但都是真的。
-
-### 生产环境在用
-
-- **[temodar-agent](https://github.com/xeloxa/temodar-agent)**（约 50 stars）。WordPress 安全分析平台，作者 [Ali Sünbül](https://github.com/xeloxa)。在 Docker runtime 里直接用我们的内置工具（`bash`、`file_*`、`grep`）。已确认生产环境使用。
-- **家用服务器 Cybersecurity SOC。** 本地完全离线跑 Qwen 2.5 + DeepSeek Coder（通过 Ollama），在 Wazuh + Proxmox 上搭自主 SOC 流水线。早期用户，未公开。
-
-如果你在生产或 side project 里用了 `open-multi-agent`，[请开个 Discussion](https://github.com/JackChen-me/open-multi-agent/discussions)，我加上来。
-
-### 集成（免费）
-
-- **[Engram](https://www.engram-memory.com)** — "Git for AI memory." Syncs knowledge across agents instantly and flags conflicts. ([repo](https://github.com/Agentscreator/engram-memory))
-
-做了 `open-multi-agent` 集成？[开个 Discussion](https://github.com/JackChen-me/open-multi-agent/discussions)，我加上来。
-
-### Featured Partner（$3,000 / 年）
-
-12 个月显眼位置：logo、100 字介绍、maintainer 背书 quote。面向已经集成 `open-multi-agent` 的产品或平台。
-
-[咨询 Featured Partner](https://github.com/JackChen-me/open-multi-agent/issues/new?title=Featured+Partner+Inquiry&labels=featured-partner-inquiry)
+| 能力 | 说明 |
+|------|------|
+| **工具与委托** | 6 个内置工具（`bash`、`file_read`、`file_write`、`file_edit`、`grep`、`glob`），加可选启用的 `delegate_to_agent`。用 `defineTool()` + Zod 自定义工具。 |
+| **MCP 集成** | 通过 `connectMCPTools()` 接入任意 MCP server。([`mcp-github`](examples/integrations/mcp-github.ts)) |
+| **同队混用 provider** | Anthropic、OpenAI、Azure、Gemini、Grok、DeepSeek、MiniMax、Qiniu、Copilot 原生支持；Ollama / vLLM / LM Studio / OpenRouter / Groq 走 OpenAI 兼容协议。([完整列表](#支持的-provider)) |
+| **流式 + 结构化输出** | 每个 adapter 都支持 token 级流式输出；用 Zod schema 校验最终答复，解析失败自动重试。([`structured-output`](examples/patterns/structured-output.ts)) |
+| **上下文策略** | `sliding-window`、`summarize`、`compact`，或自定义压缩函数，把长跑 agent 控制在 token 上限内。 |
+| **任务重试** | 每个任务可设 `maxRetries`，指数退避封顶 30 秒。([`task-retry`](examples/patterns/task-retry.ts)) |
+| **可观测性** | `onProgress` 事件、`onTrace` span，运行结束后渲染任务 DAG 的 HTML dashboard。([`trace-observability`](examples/integrations/trace-observability.ts)) |
+| **循环检测** | 滑动窗口检测器对工具调用签名和文本输出做哈希，提前发现卡死的 agent。 |
+| **工具输出控制** | 单工具截断、消费后压缩、可选用 Zod 校验工具返回值。 |
+| **可插拔共享记忆** | 默认进程内 KV；实现 `MemoryStore` 接口即可换 Redis / Postgres / Engram。 |
 
 ## 快速开始
 
-需要 Node.js >= 18。
+要求 Node.js >= 18。
+
+### 30 秒跑通一个团队
+
+最快的体验路径，克隆、安装、跑就行：
+
+```bash
+git clone https://github.com/JackChen-me/open-multi-agent && cd open-multi-agent
+npm install
+export ANTHROPIC_API_KEY=sk-...
+npx tsx examples/basics/team-collaboration.ts
+```
+
+三个 agent（architect、developer、reviewer）协作产出 `/tmp/express-api/` 下的 REST API。你能看到协调者拆解目标、并行调度任务的实时进度事件。
+
+通过 Ollama 跑本地模型不用 key，见 [`providers/ollama`](examples/providers/ollama.ts)。其他 provider（`OPENAI_API_KEY`、`GEMINI_API_KEY` 等）见[支持的 Provider](#支持的-provider)。
+
+### 在你的项目里使用
 
 ```bash
 npm install @jackchen_me/open-multi-agent
 ```
-
-根据用的 provider 设对应 API key。通过 Ollama 跑本地模型不用 key，见 [`providers/ollama`](examples/providers/ollama.ts)。
-
-- `ANTHROPIC_API_KEY`
-- `AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_VERSION`、`AZURE_OPENAI_DEPLOYMENT`（Azure OpenAI；当 `model` 为空时可用 deployment 环境变量兜底）
-- `OPENAI_API_KEY`
-- `GEMINI_API_KEY`
-- `XAI_API_KEY`（Grok）
-- `MINIMAX_API_KEY`（MiniMax）
-- `MINIMAX_BASE_URL`（MiniMax，可选，选接入端点）
-- `DEEPSEEK_API_KEY`（DeepSeek）
-- `GITHUB_TOKEN`（Copilot）
-
-### CLI（`oma`）
-
-包里还自带一个叫 `oma` 的命令行工具，给 shell 和 CI 场景用，输出都是 JSON。`oma run`、`oma task`、`oma provider`、退出码、文件格式都在 [docs/cli.md](./docs/cli.md) 里。
 
 下面用三个 agent 协作做一个 REST API：
 
@@ -89,12 +82,23 @@ const architect: AgentConfig = {
   tools: ['file_write'],
 }
 
-const developer: AgentConfig = { /* 同样结构，tools: ['bash', 'file_read', 'file_write', 'file_edit'] */ }
-const reviewer: AgentConfig = { /* 同样结构，tools: ['file_read', 'grep'] */ }
+const developer: AgentConfig = {
+  name: 'developer',
+  model: 'claude-sonnet-4-6',
+  systemPrompt: 'You implement what the architect specifies. Write clean, runnable TypeScript.',
+  tools: ['bash', 'file_read', 'file_write', 'file_edit'],
+}
+
+const reviewer: AgentConfig = {
+  name: 'reviewer',
+  model: 'claude-sonnet-4-6',
+  systemPrompt: 'You review code for correctness, security, and clarity.',
+  tools: ['file_read', 'grep'],
+}
 
 const orchestrator = new OpenMultiAgent({
   defaultModel: 'claude-sonnet-4-6',
-  onProgress: (event) => console.log(event.type, event.agent ?? event.task ?? ''),
+  onProgress: (event) => console.log(event.type, event.task ?? event.agent ?? ''),
 })
 
 const team = orchestrator.createTeam('api-team', {
@@ -114,32 +118,47 @@ console.log(`Tokens: ${result.totalTokenUsage.output_tokens} output tokens`)
 
 ```
 agent_start coordinator
-task_start architect
-task_complete architect
-task_start developer
-task_start developer              // 无依赖的任务并行执行
-task_complete developer
-task_complete developer
-task_start reviewer               // 实现完成后自动解锁
-task_complete reviewer
+task_start design-api
+task_complete design-api
+task_start implement-handlers
+task_start scaffold-tests         // 无依赖的任务并行执行
+task_complete scaffold-tests
+task_complete implement-handlers
+task_start review-code            // 实现完成后自动解锁
+task_complete review-code
 agent_complete coordinator        // 综合所有结果
 Success: true
 Tokens: 12847 output tokens
 ```
 
+### 从命令行运行
+
+包里还自带一个叫 `oma` 的命令行工具，给 shell 和 CI 场景用，输出都是 JSON。`oma run`、`oma task`、`oma provider`、退出码、文件格式都在 [docs/cli.md](./docs/cli.md) 里。
+
 ## 三种运行模式
 
-| 模式 | 方法 | 适用场景 |
-|------|------|----------|
-| 单智能体 | `runAgent()` | 一个智能体，一个提示词，最简入口 |
-| 自动编排团队 | `runTeam()` | 给一个目标，框架自动规划和执行 |
-| 显式任务管线 | `runTasks()` | 你自己定义任务图和分配 |
+| 模式 | 方法 | 适用场景 | 示例 |
+|------|------|----------|------|
+| 单智能体 | `runAgent()` | 一个智能体，一个提示词，最简入口 | [`basics/single-agent`](examples/basics/single-agent.ts) |
+| 自动编排团队 | `runTeam()` | 给一个目标，框架自动规划和执行 | [`basics/team-collaboration`](examples/basics/team-collaboration.ts) |
+| 显式任务管线 | `runTasks()` | 你自己定义任务图和分配 | [`basics/task-pipeline`](examples/basics/task-pipeline.ts) |
 
 要 MapReduce 风格的 fan-out 但不需要任务依赖，直接用 `AgentPool.runParallel()`。例子见 [`patterns/fan-out-aggregate`](examples/patterns/fan-out-aggregate.ts)。
 
 ## 示例
 
-[`examples/`](./examples/) 按类别分了 basics、providers、patterns、integrations、production。完整索引见 [`examples/README.md`](./examples/README.md)，几个值得先看的：
+[`examples/`](./examples/) 按类别分了 basics、cookbook、patterns、providers、integrations、production。完整索引见 [`examples/README.md`](./examples/README.md)。
+
+### 真实业务流程（[`cookbook/`](./examples/cookbook/)）
+
+端到端可直接跑的场景，每个都是完整、有主见的工作流。
+
+- [`contract-review-dag`](examples/cookbook/contract-review-dag.ts)：四任务 DAG 做合同审阅，分支并行 + 出错按步骤重试。
+- [`meeting-summarizer`](examples/cookbook/meeting-summarizer.ts)：三个专精 agent 并行处理会议转录稿，聚合 agent 合成含行动项和情绪分析的 Markdown 报告。
+- [`competitive-monitoring`](examples/cookbook/competitive-monitoring.ts)：三个来源 agent 并行从信息流抽取声明，聚合 agent 跨源校对、标记矛盾。
+- [`translation-backtranslation`](examples/cookbook/translation-backtranslation.ts)：用一个 provider 翻译 EN 到目标语言，另一个 provider 回译，标记语义漂移。
+
+### 模式与集成
 
 - [`basics/team-collaboration`](examples/basics/team-collaboration.ts)：`runTeam()` 协调者模式。
 - [`patterns/structured-output`](examples/patterns/structured-output.ts)：任意 agent 产出 Zod 校验过的 JSON。
@@ -147,9 +166,40 @@ Tokens: 12847 output tokens
 - [`integrations/trace-observability`](examples/integrations/trace-observability.ts)：`onTrace` 回调，给 LLM 调用、工具、任务发结构化 span。
 - [`integrations/mcp-github`](examples/integrations/mcp-github.ts)：用 `connectMCPTools()` 把 MCP 服务器的工具暴露给 agent。
 - [`integrations/with-vercel-ai-sdk`](examples/integrations/with-vercel-ai-sdk/)：Next.js 应用，OMA `runTeam()` 配合 AI SDK `useChat` 流式输出。
-- **Provider 示例**：8 个三智能体团队示例，每个 provider 一个，见 [`examples/providers/`](examples/providers/)。
+- **Provider 示例**：[`examples/providers/`](examples/providers/) 下的三智能体团队示例，覆盖托管 provider、OpenAI 兼容端点和本地模型。
 
-跑脚本用 `npx tsx examples/basics/team-collaboration.ts`。
+跑任意脚本：`npx tsx examples/<path>.ts`。
+
+## 和其他框架怎么选
+
+**对比 [LangGraph JS](https://github.com/langchain-ai/langgraphjs)。** LangGraph 是声明式图编排：自己定义节点、边、条件路由，再 `compile()` + `invoke()`。`open-multi-agent` 是目标驱动：协调者在运行时把目标拆成任务 DAG。要锁定生产拓扑、有成熟 checkpoint 选 LangGraph；想少写代码、快速迭代多智能体方案选这边。
+
+**对比 [Mastra](https://github.com/mastra-ai/mastra)。** Mastra 走 Supervisor 模式，agent、workflow、Supervisor 都得手接；`open-multi-agent` 走 Coordinator 自动拆解，入口就是一句 `runTeam(team, "构建一个 REST API")`。流程已经定型选显式拓扑（Mastra），还是给目标让框架决策（这边），按工作流是否已知来定。
+
+**对比 [CrewAI](https://github.com/crewAIInc/crewAI)。** CrewAI 是 Python 阵营成熟方案，栈是 Python 用它就行。`open-multi-agent` 走 TypeScript 原生：3 个运行时依赖、直接嵌入 Node.js、编排能力大致持平。按语言栈选。
+
+**对比 [Vercel AI SDK](https://github.com/vercel/ai)。** AI SDK 是 LLM 调用层：统一的 TypeScript 客户端，覆盖 60+ provider，支持流式、tool call、结构化输出。它不做多智能体编排。两者互补：单智能体用 AI SDK，需要团队协作叠在上面用这个。
+
+## 生态
+
+项目 2026-04-01 发布，MIT 协议。生态还在成型，下面的列表不长，但都是真的。
+
+### 生产环境在用
+
+- **[temodar-agent](https://github.com/xeloxa/temodar-agent)**（约 50 stars）。WordPress 安全分析平台，作者 [Ali Sünbül](https://github.com/xeloxa)。在 Docker runtime 里直接用我们的内置工具（`bash`、`file_*`、`grep`）。已确认生产环境使用。
+- **家用服务器 Cybersecurity SOC。** 本地完全离线跑 Qwen 2.5 + DeepSeek Coder（通过 Ollama），在 Wazuh + Proxmox 上搭自主 SOC 流水线。早期用户，未公开。
+
+如果你在生产或 side project 里用了 `open-multi-agent`，[请开个 Discussion](https://github.com/JackChen-me/open-multi-agent/discussions)，我加上来。
+
+### 集成
+
+- **[Engram](https://www.engram-memory.com)** — "Git for AI memory." Syncs knowledge across agents instantly and flags conflicts. ([repo](https://github.com/Agentscreator/engram-memory))
+
+做了 `open-multi-agent` 集成？[开个 Discussion](https://github.com/JackChen-me/open-multi-agent/discussions)，我加上来。
+
+### Featured partner
+
+面向已经深度集成 `open-multi-agent` 的产品和平台。条款和申请方式见 [Featured partner 计划](./docs/featured-partner.md)。
 
 ## 架构
 
@@ -188,14 +238,28 @@ Tokens: 12847 output tokens
          │               │  - GrokAdapter         │
          │               │  - MiniMaxAdapter      │
          │               │  - DeepSeekAdapter     │
+         │               │  - QiniuAdapter        │
          │               └────────────────────────┘
 ┌────────▼──────────┐
 │  AgentRunner      │    ┌──────────────────────┐
 │  - conversation   │───►│  ToolRegistry        │
 │    loop           │    │  - defineTool()      │
 │  - tool dispatch  │    │  - 6 built-in tools  │
-└───────────────────┘    └──────────────────────┘
+└───────────────────┘    │  + delegate (opt-in) │
+                         └──────────────────────┘
 ```
+
+## 可观测性
+
+三层遥测，每一层都可以独立消费。
+
+| 层级 | 你拿到什么 | 怎么接 |
+|------|------------|--------|
+| **`onProgress`** | 任务生命周期事件：`task_start`、`task_complete`、`task_retry`、`task_skipped`、`agent_start`、`agent_complete`、`budget_exceeded`、`error`。轻量、同步。 | `OrchestratorConfig.onProgress`，接你自己的 logger 或实时 dashboard。 |
+| **`onTrace`** | 给 LLM 调用、工具执行、任务发结构化 span，带父子关系、耗时、token 数和工具入参出参。 | `OrchestratorConfig.onTrace`，转发到 OpenTelemetry、Datadog、Honeycomb、Langfuse 等。([`integrations/trace-observability`](examples/integrations/trace-observability.ts)) |
+| **运行结束后的 HTML dashboard** | 一段静态 HTML，把执行过的任务 DAG、耗时、token 用量、每个任务的状态都画出来。不用起服务，不用 D3，纯字符串。 | `import { renderTeamRunDashboard } from '@jackchen_me/open-multi-agent'`，然后 `fs.writeFileSync('run.html', renderTeamRunDashboard(result))`。 |
+
+合在一起：用 `onProgress` 给运维实时看进度，用 `onTrace` 给调试和成本归因留痕迹，用 dashboard 留一份可分享的事后复盘产物。
 
 ## 内置工具
 
@@ -413,24 +477,50 @@ const agent: AgentConfig = {
 
 ## 支持的 Provider
 
-| Provider | 配置 | 环境变量 | 状态 |
-|----------|------|----------|------|
-| Anthropic (Claude) | `provider: 'anthropic'` | `ANTHROPIC_API_KEY` | 已验证 |
-| OpenAI (GPT) | `provider: 'openai'` | `OPENAI_API_KEY` | 已验证 |
-| Azure OpenAI | `provider: 'azure-openai'` | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`（可选：`AZURE_OPENAI_API_VERSION`、`AZURE_OPENAI_DEPLOYMENT`） | 已验证 |
-| Grok (xAI)   | `provider: 'grok'` | `XAI_API_KEY` | 已验证 |
-| MiniMax（全球） | `provider: 'minimax'` | `MINIMAX_API_KEY` | 已验证 |
-| MiniMax（国内） | `provider: 'minimax'` + `MINIMAX_BASE_URL` | `MINIMAX_API_KEY` | 已验证 |
-| DeepSeek | `provider: 'deepseek'` | `DEEPSEEK_API_KEY` | 已验证 |
-| GitHub Copilot | `provider: 'copilot'` | `GITHUB_TOKEN` | 已验证 |
-| Gemini | `provider: 'gemini'` | `GEMINI_API_KEY` | 已验证 |
-| Ollama / vLLM / LM Studio | `provider: 'openai'` + `baseURL` | 无 | 已验证 |
-| Groq | `provider: 'openai'` + `baseURL` | `GROQ_API_KEY` | 已验证 |
-| llama.cpp server | `provider: 'openai'` + `baseURL` | 无 | 已验证 |
+各家 provider 写法基本一致，改 `provider`、`model`，设好对应的环境变量：
 
-Gemini 需要 `npm install @google/genai`（optional peer dependency）。
+```typescript
+const agent: AgentConfig = {
+  name: 'my-agent',
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-6',
+  systemPrompt: 'You are a helpful assistant.',
+}
+```
 
-OpenAI 兼容的 API 都能用 `provider: 'openai'` + `baseURL` 接（Mistral、Qwen、Moonshot、Doubao 等）。Groq 在 [`providers/groq`](examples/providers/groq.ts) 里验证过。Grok、MiniMax、DeepSeek 直接用 `provider: 'grok'`、`provider: 'minimax'`、`provider: 'deepseek'`，不用配 `baseURL`。
+### 一类：内置快捷方式（写名字就能用）
+
+框架替你写好了 endpoint，你只需要设 `provider` + 环境变量。
+
+> 底层只有 Anthropic 和 Gemini 真用了各自的 SDK；其余都是 OpenAI Chat Completions 协议的预配置壳子。和下面第二张表协议一样，区别只是「框架替你写好了 baseURL」还是「你自己写」。
+
+| Provider | 配置 | 环境变量 | 示例 model | 备注 |
+|----------|------|----------|-----------|------|
+| Anthropic (Claude) | `provider: 'anthropic'` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | 原生 Anthropic SDK。 |
+| Gemini | `provider: 'gemini'` | `GEMINI_API_KEY` | `gemini-2.5-pro` | 原生 Google GenAI SDK，需 `npm install @google/genai`。 |
+| OpenAI (GPT) | `provider: 'openai'` | `OPENAI_API_KEY` | `gpt-4o` | |
+| Azure OpenAI | `provider: 'azure-openai'` | `AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_ENDPOINT` | `gpt-4` | 可选 `AZURE_OPENAI_API_VERSION`、`AZURE_OPENAI_DEPLOYMENT`。 |
+| GitHub Copilot | `provider: 'copilot'` | `GITHUB_TOKEN` | `gpt-4o` | OpenAI 协议 + 自定义 token 交换流程。 |
+| Grok (xAI) | `provider: 'grok'` | `XAI_API_KEY` | `grok-4` | OpenAI 兼容，端点 `api.x.ai/v1`。 |
+| DeepSeek | `provider: 'deepseek'` | `DEEPSEEK_API_KEY` | `deepseek-chat` | OpenAI 兼容。`deepseek-chat`（V3，写代码）或 `deepseek-reasoner`（思考模式）。 |
+| MiniMax（全球） | `provider: 'minimax'` | `MINIMAX_API_KEY` | `MiniMax-M2.7` | OpenAI 兼容。 |
+| MiniMax（国内） | `provider: 'minimax'` + `MINIMAX_BASE_URL` | `MINIMAX_API_KEY` | `MiniMax-M2.7` | 设 `MINIMAX_BASE_URL=https://api.minimaxi.com/v1`。 |
+| Qiniu | `provider: 'qiniu'` | `QINIU_API_KEY` | `deepseek-v3` | OpenAI 兼容。端点 `https://api.qnaigc.com/v1`；多模型族，见 [Qiniu AI 文档](https://developer.qiniu.com/aitokenapi/12882/ai-inference-api)。 |
+
+### 二类：其他 OpenAI 兼容服务（自己写 `baseURL`）
+
+没有内置快捷方式但协议一样。`provider: 'openai'` + `baseURL` 指向目标服务，就是任何说 OpenAI Chat Completions 协议的服务的接入方式。
+
+| 服务 | 配置 | 环境变量 | 示例 model |
+|------|------|----------|-----------|
+| Ollama（本地） | `provider: 'openai'` + `baseURL: 'http://localhost:11434/v1'` | 无 | `llama3.1` |
+| vLLM（本地） | `provider: 'openai'` + `baseURL` | 无 | （由 server 加载） |
+| LM Studio（本地） | `provider: 'openai'` + `baseURL` | 无 | （由 server 加载） |
+| llama.cpp server（本地） | `provider: 'openai'` + `baseURL` | 无 | （由 server 加载） |
+| OpenRouter | `provider: 'openai'` + `baseURL: 'https://openrouter.ai/api/v1'` + `apiKey` | `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` |
+| Groq | `provider: 'openai'` + `baseURL: 'https://api.groq.com/openai/v1'` | `GROQ_API_KEY` | `llama-3.3-70b-versatile` |
+
+Mistral、Qwen、Moonshot、Doubao、Together AI、Fireworks 等都是同样的接法。OpenRouter 这种 key 名不是 `OPENAI_API_KEY` 的，把 key 显式传给 `apiKey` 字段；否则 `openai` 适配器默认读环境里的 `OPENAI_API_KEY`。
 
 ### 本地模型 Tool-Calling
 
@@ -454,50 +544,27 @@ const localAgent: AgentConfig = {
 }
 ```
 
+**量化模型调参。** 消费级硬件上跑高度量化的 MoE 模型（Qwen2.5-MoE @ Q4、DeepSeek-MoE @ Q4 等）默认采样下容易陷入重复循环或编造工具调用 schema。`AgentConfig` 上有 `topK`、`minP`、`frequencyPenalty`、`presencePenalty`、`parallelToolCalls`（不稳的 tool-caller 设 `false`，强制一轮只调一个工具），以及 `extraBody` 这个口子，用来传 server 自家参数（比如 vLLM 的 `repetition_penalty`）。云端 OpenAI 用户不用动这些，默认是按全精度模型调好的。完整示例见 [`providers/local-quantized`](examples/providers/local-quantized.ts)。
+
 **常见问题：**
 - 模型不调用工具？先确认它在 Ollama 的 [Tools 分类](https://ollama.com/search?c=tools) 里，不是所有模型都支持。
 - 把 Ollama 升到最新版（`ollama update`），旧版本有 tool-calling bug。
 - 代理挡住了？本地服务用 `no_proxy=localhost` 跳过代理。
 
-### LLM 配置示例
+## 生产化清单
 
-```typescript
-const grokAgent: AgentConfig = {
-  name: 'grok-agent',
-  provider: 'grok',
-  model: 'grok-4',
-  systemPrompt: 'You are a helpful assistant.',
-}
-```
+上 prod 之前把这几件事做了：保护 token 花费、能从失败里恢复、出问题能查。
 
-（设好 `XAI_API_KEY` 就行，不用配 `baseURL`。）
+| 关注点 | 配置项 | 作用域 |
+|--------|--------|--------|
+| 控制对话长度 | `maxTurns`（每个 agent）+ `contextStrategy`（`sliding-window` / `summarize` / `compact` / `custom`） | `AgentConfig` |
+| 限制工具输出 | `maxToolOutputChars`（或单工具 `maxOutputChars`）+ `compressToolResults: true` | `AgentConfig` 和 `defineTool()` |
+| 失败重试 | 任务级 `maxRetries`、`retryDelayMs`、`retryBackoff`（指数退避倍率） | 通过 `runTasks()` 用的任务配置 |
+| 总额封顶 | orchestrator 上设 `maxTokenBudget` | `OrchestratorConfig` |
+| 卡死检测 | `loopDetection` + `onLoopDetected: 'terminate'`（或自定义 handler） | `AgentConfig` |
+| 追踪与审计 | `onTrace` 接你的 tracing 后端；落盘 `renderTeamRunDashboard(result)` | `OrchestratorConfig` |
 
-```typescript
-const minimaxAgent: AgentConfig = {
-  name: 'minimax-agent',
-  provider: 'minimax',
-  model: 'MiniMax-M2.7',
-  systemPrompt: 'You are a helpful assistant.',
-}
-```
-
-设好 `MINIMAX_API_KEY`。端点用 `MINIMAX_BASE_URL` 选：
-
-- `https://api.minimax.io/v1` 全球端点，默认
-- `https://api.minimaxi.com/v1` 中国大陆端点
-
-也可以直接在 `AgentConfig` 里传 `baseURL`，覆盖环境变量。
-
-```typescript
-const deepseekAgent: AgentConfig = {
-  name: 'deepseek-agent',
-  provider: 'deepseek',
-  model: 'deepseek-chat',
-  systemPrompt: '你是一个有用的助手。',
-}
-```
-
-设好 `DEEPSEEK_API_KEY`。两个模型：`deepseek-chat`（DeepSeek-V3，写代码选这个）和 `deepseek-reasoner`（思考模式）。
+完整的端到端生产化样例都在 [`examples/production/`](./examples/production/) 下。
 
 ## 参与贡献
 
@@ -505,20 +572,21 @@ Issue、feature request、PR 都欢迎。特别想要：
 
 - **生产级示例。** 端到端跑通的真实场景工作流。收录条件和提交格式见 [`examples/production/README.md`](./examples/production/README.md)。
 - **文档。** 指南、教程、API 文档。
+- **翻译。** 把这份 README 翻译成其他语言。[提个 PR](https://github.com/JackChen-me/open-multi-agent/pulls)。
 
 ## 贡献者
 
 <a href="https://github.com/JackChen-me/open-multi-agent/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JackChen-me/open-multi-agent&max=20&v=20260423" />
+  <img src="https://contrib.rocks/image?repo=JackChen-me/open-multi-agent&max=20&v=20260425" />
 </a>
 
 ## Star 趋势
 
 <a href="https://star-history.com/#JackChen-me/open-multi-agent&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&theme=dark&v=20260423" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260423" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260423" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&theme=dark&v=20260425" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260425" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260425" />
  </picture>
 </a>
 

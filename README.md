@@ -1,82 +1,73 @@
-# Open Multi-Agent
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/brand/logo-mark-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/brand/logo-mark-light.svg">
+    <img alt="Open Multi-Agent" src=".github/brand/logo-mark-light.svg" width="96">
+  </picture>
+</p>
 
-The lightweight multi-agent orchestration engine for TypeScript. Three runtime dependencies, zero config, goal to result in one `runTeam()` call.
+<h1 align="center">Open Multi-Agent</h1>
 
-CrewAI is Python. LangGraph makes you draw the graph by hand. `open-multi-agent` is the `npm install` you drop into an existing Node.js backend when you need a team of agents to work on a goal together. Nothing more, nothing less.
+<p align="center">
+  Lightweight multi-agent orchestration for TypeScript.
+</p>
 
-[![npm version](https://img.shields.io/npm/v/@jackchen_me/open-multi-agent)](https://www.npmjs.com/package/@jackchen_me/open-multi-agent)
-[![GitHub stars](https://img.shields.io/github/stars/JackChen-me/open-multi-agent)](https://github.com/JackChen-me/open-multi-agent/stargazers)
-[![license](https://img.shields.io/github/license/JackChen-me/open-multi-agent)](./LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
-[![runtime deps](https://img.shields.io/badge/runtime_deps-3-brightgreen)](https://github.com/JackChen-me/open-multi-agent/blob/main/package.json)
-[![codecov](https://codecov.io/gh/JackChen-me/open-multi-agent/graph/badge.svg)](https://codecov.io/gh/JackChen-me/open-multi-agent)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@jackchen_me/open-multi-agent"><img src="https://img.shields.io/npm/v/@jackchen_me/open-multi-agent" alt="npm version"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/JackChen-me/open-multi-agent" alt="license"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.6-blue" alt="TypeScript"></a>
+  <a href="https://codecov.io/gh/JackChen-me/open-multi-agent"><img src="https://codecov.io/gh/JackChen-me/open-multi-agent/graph/badge.svg" alt="codecov"></a>
+  <a href="https://github.com/JackChen-me/open-multi-agent/blob/main/package.json"><img src="https://img.shields.io/badge/runtime_deps-3-brightgreen" alt="runtime deps"></a>
+  <a href="https://github.com/JackChen-me/open-multi-agent/stargazers"><img src="https://img.shields.io/github/stars/JackChen-me/open-multi-agent" alt="GitHub stars"></a>
+</p>
 
-**English** | [中文](./README_zh.md)
+<p align="center">
+  <strong>English</strong> · <a href="./README_zh.md">中文</a>
+</p>
 
-## What you actually get
+---
 
-- **Goal to result in one call.** `runTeam(team, "Build a REST API")` kicks off a coordinator agent that decomposes the goal into a task DAG, resolves dependencies, runs independent tasks in parallel, and synthesizes the final output. No graph to draw, no tasks to wire up.
-- **TypeScript-native, three runtime dependencies.** `@anthropic-ai/sdk`, `openai`, `zod`. That is the whole runtime. Embed in Express, Next.js, serverless functions, or CI/CD pipelines. No Python runtime, no subprocess bridge, no cloud sidecar.
-- **Multi-model teams.** Claude, GPT, Gemini, Grok, MiniMax, DeepSeek, Qiniu, Copilot, or any OpenAI-compatible local model (Ollama, vLLM, LM Studio, llama.cpp) in the same team. Run the architect on Opus 4.7, the developer on GPT-5.4, the reviewer on local Gemma 4, all in one `runTeam()` call. Gemini ships as an optional peer dependency: `npm install @google/genai` to enable.
+`open-multi-agent` is a multi-agent orchestration framework for TypeScript backends. Give it a goal; a coordinator agent decomposes it into a task DAG, parallelizes independents, and synthesizes the result. Three runtime dependencies, drops into any Node.js backend, so your engineers describe the goal, not the graph.
 
-Other features (MCP integration, context strategies, structured output, task retry, human-in-the-loop, lifecycle hooks, loop detection, observability) live below the fold and in [`examples/`](./examples/).
+## Features
 
-## How is this different from X?
-
-**vs. [LangGraph JS](https://github.com/langchain-ai/langgraphjs).** LangGraph is declarative graph orchestration: you define nodes, edges, and conditional routing, then `compile()` and `invoke()`. `open-multi-agent` is goal-driven: you declare a team and a goal, a coordinator decomposes it into a task DAG at runtime. LangGraph gives you total control of topology (great for fixed production workflows). This gives you less typing and faster iteration (great for exploratory multi-agent work). LangGraph also has mature checkpointing; we do not.
-
-**vs. [CrewAI](https://github.com/crewAIInc/crewAI).** CrewAI is the mature Python choice. If your stack is Python, use CrewAI. `open-multi-agent` is TypeScript-native: three runtime dependencies, embeds directly in Node.js without a subprocess bridge. Roughly comparable capability on the orchestration side. Choose on language fit.
-
-**vs. [Vercel AI SDK](https://github.com/vercel/ai).** AI SDK is the LLM call layer: a unified TypeScript client for 60+ providers with streaming, tool calls, and structured outputs. It does not orchestrate multi-agent teams. `open-multi-agent` sits on top when you need that. They compose: use AI SDK for single-agent work, reach for this when you need a team.
-
-## Ecosystem
-
-`open-multi-agent` is a new project (launched 2026-04-01, MIT). The ecosystem is still forming, so the lists below are short and honest.
-
-### In production
-
-- **[temodar-agent](https://github.com/xeloxa/temodar-agent)** (~50 stars). WordPress security analysis platform by [Ali Sünbül](https://github.com/xeloxa). Uses our built-in tools (`bash`, `file_*`, `grep`) directly in its Docker runtime. Confirmed production use.
-- **Cybersecurity SOC (home lab).** A private setup running Qwen 2.5 + DeepSeek Coder entirely offline via Ollama, building an autonomous SOC pipeline on Wazuh + Proxmox. Early user, not yet public.
-
-Using `open-multi-agent` in production or a side project? [Open a discussion](https://github.com/JackChen-me/open-multi-agent/discussions) and we will list it here.
-
-### Integrations (free)
-
-- **[Engram](https://www.engram-memory.com)** — "Git for AI memory." Syncs knowledge across agents instantly and flags conflicts. ([repo](https://github.com/Agentscreator/engram-memory))
-
-Built an integration? [Open a discussion](https://github.com/JackChen-me/open-multi-agent/discussions) to get listed.
-
-### Featured Partner ($3,000 / year)
-
-12 months of prominent placement: logo, 100-word description, and a maintainer endorsement quote. For products or platforms already integrated with `open-multi-agent`.
-
-[Inquire about Featured Partner](https://github.com/JackChen-me/open-multi-agent/issues/new?title=Featured+Partner+Inquiry&labels=featured-partner-inquiry)
+| Capability | What you get |
+|------------|--------------|
+| **Tools + delegation** | 6 built-in (`bash`, `file_read`, `file_write`, `file_edit`, `grep`, `glob`), plus opt-in `delegate_to_agent`. Define your own with `defineTool()` and Zod schemas. |
+| **MCP integration** | Connect to any MCP server via `connectMCPTools()`. ([`mcp-github`](examples/integrations/mcp-github.ts)) |
+| **Mix providers in one team** | Anthropic, OpenAI, Azure, Gemini, Grok, DeepSeek, MiniMax, Qiniu, Copilot native; Ollama / vLLM / LM Studio / OpenRouter / Groq via OpenAI-compatible. ([full list](#supported-providers)) |
+| **Streaming + structured output** | Token-by-token streaming on every adapter; Zod-validated final answer with auto-retry on parse failure. ([`structured-output`](examples/patterns/structured-output.ts)) |
+| **Context strategies** | `sliding-window`, `summarize`, `compact`, or a custom compressor. Keeps long-running agents under the token ceiling. |
+| **Task retry with backoff** | Per-task `maxRetries` with exponential backoff capped at 30s. ([`task-retry`](examples/patterns/task-retry.ts)) |
+| **Observability** | `onProgress` events, `onTrace` spans, post-run HTML dashboard rendering the executed task DAG. ([`trace-observability`](examples/integrations/trace-observability.ts)) |
+| **Loop detection** | Sliding-window detector hashes tool-call signatures and text outputs to catch agents stuck repeating themselves. |
+| **Tool output control** | Per-tool truncation, post-consumption compression, optional Zod validation on tool results. |
+| **Pluggable shared memory** | Default in-process KV; swap in Redis / Postgres / Engram by implementing `MemoryStore`. |
 
 ## Quick Start
 
 Requires Node.js >= 18.
 
+### Run a working team in 30 seconds
+
+The fastest way to see the framework in action: clone, install, run.
+
+```bash
+git clone https://github.com/JackChen-me/open-multi-agent && cd open-multi-agent
+npm install
+export ANTHROPIC_API_KEY=sk-...
+npx tsx examples/basics/team-collaboration.ts
+```
+
+Three agents (architect, developer, reviewer) collaborate on a REST API in `/tmp/express-api/`. You watch the coordinator decompose the goal and run independent tasks in parallel as the progress events stream in.
+
+Local models via Ollama need no API key, see [`providers/ollama`](examples/providers/ollama.ts). For other providers (`OPENAI_API_KEY`, `GEMINI_API_KEY`, etc.), check [Supported Providers](#supported-providers).
+
+### Use it in your project
+
 ```bash
 npm install @jackchen_me/open-multi-agent
 ```
-
-Set the API key for your provider. Local models via Ollama require no API key. See [`providers/ollama`](examples/providers/ollama.ts).
-
-- `ANTHROPIC_API_KEY`
-- `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_VERSION`, `AZURE_OPENAI_DEPLOYMENT` (for Azure OpenAI; deployment is optional fallback when `model` is blank)
-- `OPENAI_API_KEY`
-- `OPENROUTER_API_KEY` (for OpenRouter via the OpenAI-compatible adapter)
-- `GEMINI_API_KEY`
-- `XAI_API_KEY` (for Grok)
-- `MINIMAX_API_KEY` (for MiniMax)
-- `MINIMAX_BASE_URL` (for MiniMax, optional, selects endpoint)
-- `DEEPSEEK_API_KEY` (for DeepSeek)
-- `QINIU_API_KEY` (for Qiniu)
-- `GITHUB_TOKEN` (for Copilot)
-
-### CLI (`oma`)
-
-For shell and CI, the package exposes a JSON-first binary. See [docs/cli.md](./docs/cli.md) for `oma run`, `oma task`, `oma provider`, exit codes, and file formats.
 
 Three agents, one goal. The framework handles the rest:
 
@@ -91,12 +82,23 @@ const architect: AgentConfig = {
   tools: ['file_write'],
 }
 
-const developer: AgentConfig = { /* same shape, tools: ['bash', 'file_read', 'file_write', 'file_edit'] */ }
-const reviewer: AgentConfig = { /* same shape, tools: ['file_read', 'grep'] */ }
+const developer: AgentConfig = {
+  name: 'developer',
+  model: 'claude-sonnet-4-6',
+  systemPrompt: 'You implement what the architect specifies. Write clean, runnable TypeScript.',
+  tools: ['bash', 'file_read', 'file_write', 'file_edit'],
+}
+
+const reviewer: AgentConfig = {
+  name: 'reviewer',
+  model: 'claude-sonnet-4-6',
+  systemPrompt: 'You review code for correctness, security, and clarity.',
+  tools: ['file_read', 'grep'],
+}
 
 const orchestrator = new OpenMultiAgent({
   defaultModel: 'claude-sonnet-4-6',
-  onProgress: (event) => console.log(event.type, event.agent ?? event.task ?? ''),
+  onProgress: (event) => console.log(event.type, event.task ?? event.agent ?? ''),
 })
 
 const team = orchestrator.createTeam('api-team', {
@@ -116,32 +118,47 @@ What happens under the hood:
 
 ```
 agent_start coordinator
-task_start architect
-task_complete architect
-task_start developer
-task_start developer              // independent tasks run in parallel
-task_complete developer
-task_complete developer
-task_start reviewer               // unblocked after implementation
-task_complete reviewer
+task_start design-api
+task_complete design-api
+task_start implement-handlers
+task_start scaffold-tests         // independent tasks run in parallel
+task_complete scaffold-tests
+task_complete implement-handlers
+task_start review-code            // unblocked after implementation
+task_complete review-code
 agent_complete coordinator        // synthesizes final result
 Success: true
 Tokens: 12847 output tokens
 ```
 
+### Run from the shell
+
+For shell and CI, the package exposes a JSON-first binary. See [docs/cli.md](./docs/cli.md) for `oma run`, `oma task`, `oma provider`, exit codes, and file formats.
+
 ## Three Ways to Run
 
-| Mode | Method | When to use |
-|------|--------|-------------|
-| Single agent | `runAgent()` | One agent, one prompt. Simplest entry point |
-| Auto-orchestrated team | `runTeam()` | Give a goal, framework plans and executes |
-| Explicit pipeline | `runTasks()` | You define the task graph and assignments |
+| Mode | Method | When to use | Example |
+|------|--------|-------------|---------|
+| Single agent | `runAgent()` | One agent, one prompt. Simplest entry point | [`basics/single-agent`](examples/basics/single-agent.ts) |
+| Auto-orchestrated team | `runTeam()` | Give a goal, framework plans and executes | [`basics/team-collaboration`](examples/basics/team-collaboration.ts) |
+| Explicit pipeline | `runTasks()` | You define the task graph and assignments | [`basics/task-pipeline`](examples/basics/task-pipeline.ts) |
 
 For MapReduce-style fan-out without task dependencies, use `AgentPool.runParallel()` directly. See [`patterns/fan-out-aggregate`](examples/patterns/fan-out-aggregate.ts).
 
 ## Examples
 
-[`examples/`](./examples/) is organized by category: basics, providers, patterns, integrations, and production. See [`examples/README.md`](./examples/README.md) for the full index. Highlights:
+[`examples/`](./examples/) is organized by category: basics, cookbook, patterns, providers, integrations, and production. See [`examples/README.md`](./examples/README.md) for the full index.
+
+### Real-world workflows ([`cookbook/`](./examples/cookbook/))
+
+End-to-end scenarios you can run today. Each one is a complete, opinionated workflow.
+
+- [`contract-review-dag`](examples/cookbook/contract-review-dag.ts): four-task DAG for contract review with parallel branches and step-level retry on failure.
+- [`meeting-summarizer`](examples/cookbook/meeting-summarizer.ts): three specialised agents fan out on a transcript, an aggregator merges them into one Markdown report with action items and sentiment.
+- [`competitive-monitoring`](examples/cookbook/competitive-monitoring.ts): three parallel source agents extract claims from feeds; an aggregator cross-checks them and flags contradictions.
+- [`translation-backtranslation`](examples/cookbook/translation-backtranslation.ts): translate EN to target with one provider, back-translate with another, flag semantic drift.
+
+### Patterns and integrations
 
 - [`basics/team-collaboration`](examples/basics/team-collaboration.ts): `runTeam()` coordinator pattern.
 - [`patterns/structured-output`](examples/patterns/structured-output.ts): any agent returns Zod-validated JSON.
@@ -151,7 +168,38 @@ For MapReduce-style fan-out without task dependencies, use `AgentPool.runParalle
 - [`integrations/with-vercel-ai-sdk`](examples/integrations/with-vercel-ai-sdk/): Next.js app combining OMA `runTeam()` with AI SDK `useChat` streaming.
 - **Provider examples**: three-agent teams under [`examples/providers/`](examples/providers/), including hosted providers, OpenAI-compatible endpoints, and local models.
 
-Run scripts with `npx tsx examples/basics/team-collaboration.ts`.
+Run any script with `npx tsx examples/<path>.ts`.
+
+## How is this different from X?
+
+**vs. [LangGraph JS](https://github.com/langchain-ai/langgraphjs).** LangGraph is declarative graph orchestration: you define nodes, edges, and conditional routing, then `compile()` and `invoke()`. `open-multi-agent` is goal-driven: a coordinator decomposes the goal into a task DAG at runtime. Pick LangGraph for fixed production topology with mature checkpointing; pick this for less typing and faster iteration on multi-agent flows.
+
+**vs. [Mastra](https://github.com/mastra-ai/mastra).** Mastra ships a Supervisor pattern with manually wired agents and workflows; `open-multi-agent` ships a Coordinator that auto-decomposes the goal, with `runTeam(team, "Build a REST API")` as the entry point. Choose explicit topology (Mastra) versus goal-to-result automation (us) based on whether the workflow is known up front.
+
+**vs. [CrewAI](https://github.com/crewAIInc/crewAI).** CrewAI is the mature Python choice; if your stack is Python, use CrewAI. `open-multi-agent` is TypeScript-native: 3 runtime dependencies, embeds directly in Node.js, with roughly comparable orchestration capability. Choose on language fit.
+
+**vs. [Vercel AI SDK](https://github.com/vercel/ai).** AI SDK is the LLM call layer: a unified TypeScript client for 60+ providers with streaming, tool calls, and structured outputs. It does not orchestrate multi-agent teams. They compose: use AI SDK for single-agent work, reach for this when you need a team.
+
+## Ecosystem
+
+`open-multi-agent` is a new project (launched 2026-04-01, MIT). The ecosystem is still forming, so the lists below are short and honest.
+
+### In production
+
+- **[temodar-agent](https://github.com/xeloxa/temodar-agent)** (~50 stars). WordPress security analysis platform by [Ali Sünbül](https://github.com/xeloxa). Uses our built-in tools (`bash`, `file_*`, `grep`) directly in its Docker runtime. Confirmed production use.
+- **Cybersecurity SOC (home lab).** A private setup running Qwen 2.5 + DeepSeek Coder entirely offline via Ollama, building an autonomous SOC pipeline on Wazuh + Proxmox. Early user, not yet public.
+
+Using `open-multi-agent` in production or a side project? [Open a discussion](https://github.com/JackChen-me/open-multi-agent/discussions) and we will list it here.
+
+### Integrations
+
+- **[Engram](https://www.engram-memory.com)** — "Git for AI memory." Syncs knowledge across agents instantly and flags conflicts. ([repo](https://github.com/Agentscreator/engram-memory))
+
+Built an integration? [Open a discussion](https://github.com/JackChen-me/open-multi-agent/discussions) to get listed.
+
+### Featured partner
+
+For products and platforms with a deep `open-multi-agent` integration. See the [Featured partner program](./docs/featured-partner.md) for terms and how to apply.
 
 ## Architecture
 
@@ -197,8 +245,21 @@ Run scripts with `npx tsx examples/basics/team-collaboration.ts`.
 │  - conversation   │───►│  ToolRegistry        │
 │    loop           │    │  - defineTool()      │
 │  - tool dispatch  │    │  - 6 built-in tools  │
-└───────────────────┘    └──────────────────────┘
+└───────────────────┘    │  + delegate (opt-in) │
+                         └──────────────────────┘
 ```
+
+## Observability
+
+Three layers of telemetry, each independently consumable.
+
+| Layer | What it gives you | Where to wire it |
+|-------|-------------------|------------------|
+| **`onProgress`** | Per-task lifecycle events: `task_start`, `task_complete`, `task_retry`, `task_skipped`, `agent_start`, `agent_complete`, `budget_exceeded`, `error`. Lightweight, sync. | `OrchestratorConfig.onProgress`; pipe to your logger or a live dashboard. |
+| **`onTrace`** | Structured spans for LLM calls, tool executions, and tasks. Each span carries parent IDs, durations, token counts, and tool I/O. | `OrchestratorConfig.onTrace`; forward to OpenTelemetry, Datadog, Honeycomb, Langfuse, etc. ([`integrations/trace-observability`](examples/integrations/trace-observability.ts)) |
+| **Post-run HTML dashboard** | Static HTML page rendering the executed task DAG with timing, token usage, and per-task status. No server, no D3, just `string`. | `import { renderTeamRunDashboard } from '@jackchen_me/open-multi-agent'`, then `fs.writeFileSync('run.html', renderTeamRunDashboard(result))`. |
+
+Together: live progress for ops, traces for debugging and cost attribution, a shareable post-mortem artifact for any run.
 
 ## Built-in Tools
 
@@ -419,26 +480,50 @@ Pairs well with `compressToolResults` and `maxToolOutputChars` above.
 
 ## Supported Providers
 
-| Provider | Config | Env var | Status |
-|----------|--------|---------|--------|
-| Anthropic (Claude) | `provider: 'anthropic'` | `ANTHROPIC_API_KEY` | Verified |
-| OpenAI (GPT) | `provider: 'openai'` | `OPENAI_API_KEY` | Verified |
-| Azure OpenAI | `provider: 'azure-openai'` | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT` (+ optional `AZURE_OPENAI_API_VERSION`, `AZURE_OPENAI_DEPLOYMENT`) | Verified |
-| Grok (xAI)   | `provider: 'grok'` | `XAI_API_KEY` | Verified |
-| MiniMax (global) | `provider: 'minimax'` | `MINIMAX_API_KEY` | Verified |
-| MiniMax (China) | `provider: 'minimax'` + `MINIMAX_BASE_URL` | `MINIMAX_API_KEY` | Verified |
-| DeepSeek | `provider: 'deepseek'` | `DEEPSEEK_API_KEY` | Verified |
-| Qiniu | `provider: 'qiniu'` | `QINIU_API_KEY` | Verified |
-| GitHub Copilot | `provider: 'copilot'` | `GITHUB_TOKEN` | Verified |
-| Gemini | `provider: 'gemini'` | `GEMINI_API_KEY` | Verified |
-| Ollama / vLLM / LM Studio | `provider: 'openai'` + `baseURL` | none | Verified |
-| OpenRouter | `provider: 'openai'` + `baseURL` + `apiKey` | `OPENROUTER_API_KEY` | Verified via [`providers/openrouter`](examples/providers/openrouter.ts) |
-| Groq | `provider: 'openai'` + `baseURL` | `GROQ_API_KEY` | Verified |
-| llama.cpp server | `provider: 'openai'` + `baseURL` | none | Verified |
+Change `provider`, `model`, and set the env var. The agent config shape stays the same:
 
-Gemini requires `npm install @google/genai` (optional peer dependency).
+```typescript
+const agent: AgentConfig = {
+  name: 'my-agent',
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-6',
+  systemPrompt: 'You are a helpful assistant.',
+}
+```
 
-Any OpenAI-compatible API should work via `provider: 'openai'` + `baseURL` (Mistral, Qwen, Moonshot, Doubao, etc.). OpenRouter is verified in [`providers/openrouter`](examples/providers/openrouter.ts); pass `process.env.OPENROUTER_API_KEY` as `apiKey` because the `openai` adapter otherwise reads `OPENAI_API_KEY`. Groq is verified in [`providers/groq`](examples/providers/groq.ts). **Grok, MiniMax, DeepSeek, and Qiniu now have first-class support** via `provider: 'grok'`, `provider: 'minimax'`, `provider: 'deepseek'`, and `provider: 'qiniu'`.
+### First-class providers (named shortcuts)
+
+The framework ships a wired-in provider name for each of these. You set `provider` and the env var, that's it.
+
+> Under the hood, Anthropic and Gemini use their own SDKs; the rest are pre-configured shortcuts on top of the OpenAI Chat Completions protocol. Same wire format as the second table, the framework just wrote the `baseURL` for you.
+
+| Provider | Config | Env var | Example model | Notes |
+|----------|--------|---------|--------------|-------|
+| Anthropic (Claude) | `provider: 'anthropic'` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | Native Anthropic SDK. |
+| Gemini | `provider: 'gemini'` | `GEMINI_API_KEY` | `gemini-2.5-pro` | Native Google GenAI SDK. Requires `npm install @google/genai`. |
+| OpenAI (GPT) | `provider: 'openai'` | `OPENAI_API_KEY` | `gpt-4o` | |
+| Azure OpenAI | `provider: 'azure-openai'` | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT` | `gpt-4` | Optional `AZURE_OPENAI_API_VERSION`, `AZURE_OPENAI_DEPLOYMENT`. |
+| GitHub Copilot | `provider: 'copilot'` | `GITHUB_TOKEN` | `gpt-4o` | Custom token-exchange flow on top of OpenAI protocol. |
+| Grok (xAI) | `provider: 'grok'` | `XAI_API_KEY` | `grok-4` | OpenAI-compatible; endpoint is `api.x.ai/v1`. |
+| DeepSeek | `provider: 'deepseek'` | `DEEPSEEK_API_KEY` | `deepseek-chat` | OpenAI-compatible. `deepseek-chat` (V3, coding) or `deepseek-reasoner` (thinking mode). |
+| MiniMax (global) | `provider: 'minimax'` | `MINIMAX_API_KEY` | `MiniMax-M2.7` | OpenAI-compatible. |
+| MiniMax (China) | `provider: 'minimax'` + `MINIMAX_BASE_URL` | `MINIMAX_API_KEY` | `MiniMax-M2.7` | Set `MINIMAX_BASE_URL=https://api.minimaxi.com/v1`. |
+| Qiniu | `provider: 'qiniu'` | `QINIU_API_KEY` | `deepseek-v3` | OpenAI-compatible. Endpoint `https://api.qnaigc.com/v1`; multiple model families, see [Qiniu AI docs](https://developer.qiniu.com/aitokenapi/12882/ai-inference-api). |
+
+### Anything else OpenAI-compatible (manual `baseURL`)
+
+No bundled shortcut, but it works the same. Use `provider: 'openai'` and point `baseURL` at any server that speaks OpenAI Chat Completions.
+
+| Service | Config | Env var | Example model |
+|---------|--------|---------|---------------|
+| Ollama (local) | `provider: 'openai'` + `baseURL: 'http://localhost:11434/v1'` | none | `llama3.1` |
+| vLLM (local) | `provider: 'openai'` + `baseURL` | none | (server-loaded) |
+| LM Studio (local) | `provider: 'openai'` + `baseURL` | none | (server-loaded) |
+| llama.cpp server (local) | `provider: 'openai'` + `baseURL` | none | (server-loaded) |
+| OpenRouter | `provider: 'openai'` + `baseURL: 'https://openrouter.ai/api/v1'` + `apiKey` | `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` |
+| Groq | `provider: 'openai'` + `baseURL: 'https://api.groq.com/openai/v1'` | `GROQ_API_KEY` | `llama-3.3-70b-versatile` |
+
+Mistral, Qwen, Moonshot, Doubao, Together AI, Fireworks, etc. all plug in the same way. For services where the key is not `OPENAI_API_KEY` (OpenRouter is one), pass it explicitly via the `apiKey` config field; otherwise the `openai` adapter falls back to `OPENAI_API_KEY` from the environment.
 
 ### Local Model Tool-Calling
 
@@ -462,61 +547,27 @@ const localAgent: AgentConfig = {
 }
 ```
 
+**Quantized model tuning.** Highly quantized MoE models on consumer hardware (Qwen2.5-MoE @ Q4, DeepSeek-MoE @ Q4, etc.) tend to fall into repetition loops or hallucinate tool-call schemas under default sampling. `AgentConfig` exposes `topK`, `minP`, `frequencyPenalty`, `presencePenalty`, `parallelToolCalls` (set `false` to force one tool call per turn on shaky tool-callers), and an `extraBody` escape hatch for server-specific knobs (e.g. vLLM's `repetition_penalty`). Cloud OpenAI users do not need these — defaults are tuned for full-precision models. See [`providers/local-quantized`](examples/providers/local-quantized.ts) for a full setup.
+
 **Troubleshooting:**
 - Model not calling tools? Ensure it appears in Ollama's [Tools category](https://ollama.com/search?c=tools). Not all models support tool-calling.
 - Using Ollama? Update to the latest version (`ollama update`). Older versions have known tool-calling bugs.
 - Proxy interfering? Use `no_proxy=localhost` when running against local servers.
 
-### LLM Configuration Examples
+## Production Checklist
 
-```typescript
-const grokAgent: AgentConfig = {
-  name: 'grok-agent',
-  provider: 'grok',
-  model: 'grok-4',
-  systemPrompt: 'You are a helpful assistant.',
-}
-```
+Before going live, wire up the controls that protect token spend, recover from failure, and let you debug.
 
-(Set your `XAI_API_KEY` environment variable, no `baseURL` needed.)
+| Concern | Knob | Where it lives |
+|---------|------|----------------|
+| Bound the conversation | `maxTurns` per agent + `contextStrategy` (`sliding-window` / `summarize` / `compact` / `custom`) | `AgentConfig` |
+| Cap tool output | `maxToolOutputChars` (or per-tool `maxOutputChars`) + `compressToolResults: true` | `AgentConfig` and `defineTool()` |
+| Recover from failure | Per-task `maxRetries`, `retryDelayMs`, `retryBackoff` (exponential multiplier) | Task config used via `runTasks()` |
+| Hard-cap spend | `maxTokenBudget` on the orchestrator | `OrchestratorConfig` |
+| Catch stuck agents | `loopDetection` with `onLoopDetected: 'terminate'` (or a custom handler) | `AgentConfig` |
+| Trace and audit | `onTrace` to your tracing backend; persist `renderTeamRunDashboard(result)` | `OrchestratorConfig` |
 
-```typescript
-const minimaxAgent: AgentConfig = {
-  name: 'minimax-agent',
-  provider: 'minimax',
-  model: 'MiniMax-M2.7',
-  systemPrompt: 'You are a helpful assistant.',
-}
-```
-
-Set `MINIMAX_API_KEY`. The adapter selects the endpoint via `MINIMAX_BASE_URL`:
-
-- `https://api.minimax.io/v1` Global, default
-- `https://api.minimaxi.com/v1` China mainland endpoint
-
-You can also pass `baseURL` directly in `AgentConfig` to override the env var.
-
-```typescript
-const deepseekAgent: AgentConfig = {
-  name: 'deepseek-agent',
-  provider: 'deepseek',
-  model: 'deepseek-chat',
-  systemPrompt: 'You are a helpful assistant.',
-}
-```
-
-Set `DEEPSEEK_API_KEY`. Available models: `deepseek-chat` (DeepSeek-V3, recommended for coding) and `deepseek-reasoner` (thinking mode).
-
-```typescript
-const qiniuAgent: AgentConfig = {
-  name: 'qiniu-agent',
-  provider: 'qiniu',
-  model: 'deepseek-v3',
-  systemPrompt: 'You are a helpful assistant.',
-}
-```
-
-Set `QINIU_API_KEY`. Qiniu hosts multiple model families behind a single OpenAI-compatible endpoint at `https://api.qnaigc.com/v1`; see the [Qiniu AI inference docs](https://developer.qiniu.com/aitokenapi/12882/ai-inference-api) for the current model list. Pass `baseURL` in `AgentConfig` to override the default endpoint.
+End-to-end production patterns live under [`examples/production/`](./examples/production/).
 
 ## Contributing
 
@@ -524,26 +575,23 @@ Issues, feature requests, and PRs are welcome. Some areas where contributions wo
 
 - **Production examples.** Real-world end-to-end workflows. See [`examples/production/README.md`](./examples/production/README.md) for the acceptance criteria and submission format.
 - **Documentation.** Guides, tutorials, and API docs.
+- **Translations.** Help translate this README into other languages. [Open a PR](https://github.com/JackChen-me/open-multi-agent/pulls).
 
 ## Contributors
 
 <a href="https://github.com/JackChen-me/open-multi-agent/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JackChen-me/open-multi-agent&max=20&v=20260423" />
+  <img src="https://contrib.rocks/image?repo=JackChen-me/open-multi-agent&max=20&v=20260425" />
 </a>
 
 ## Star History
 
 <a href="https://star-history.com/#JackChen-me/open-multi-agent&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&theme=dark&v=20260423" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260423" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260423" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&theme=dark&v=20260425" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260425" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JackChen-me/open-multi-agent&type=Date&v=20260425" />
  </picture>
 </a>
-
-## Translations
-
-Help translate this README. [Open a PR](https://github.com/JackChen-me/open-multi-agent/pulls).
 
 ## License
 
