@@ -623,7 +623,14 @@ async function executeQueue(
       let retryCount = 0
 
       const result = await executeWithRetry(
-        () => pool.run(assignee, prompt, runOptions),
+        () => pool.run(
+          assignee,
+          prompt,
+          runOptions,
+          config.onAgentStream
+            ? (event) => config.onAgentStream!(assignee, event)
+            : undefined,
+        ),
         task,
         (retryData) => {
           retryCount++
@@ -814,8 +821,8 @@ async function buildTaskPrompt(task: Task, team: Team, queue: TaskQueue): Promis
  */
 export class OpenMultiAgent {
   private readonly config: Required<
-    Omit<OrchestratorConfig, 'onApproval' | 'onPlanReady' | 'onProgress' | 'onTrace' | 'defaultBaseURL' | 'defaultApiKey' | 'maxTokenBudget'>
-  > & Pick<OrchestratorConfig, 'onApproval' | 'onPlanReady' | 'onProgress' | 'onTrace' | 'defaultBaseURL' | 'defaultApiKey' | 'maxTokenBudget'>
+    Omit<OrchestratorConfig, 'onApproval' | 'onAgentStream' | 'onPlanReady' | 'onProgress' | 'onTrace' | 'defaultBaseURL' | 'defaultApiKey' | 'maxTokenBudget'>
+  > & Pick<OrchestratorConfig, 'onApproval' | 'onAgentStream' | 'onPlanReady' | 'onProgress' | 'onTrace' | 'defaultBaseURL' | 'defaultApiKey' | 'maxTokenBudget'>
 
   private readonly teams: Map<string, Team> = new Map()
   private completedTaskCount = 0
@@ -840,6 +847,7 @@ export class OpenMultiAgent {
       maxTokenBudget: config.maxTokenBudget,
       onApproval: config.onApproval,
       onPlanReady: config.onPlanReady,
+      onAgentStream: config.onAgentStream,
       onProgress: config.onProgress,
       onTrace: config.onTrace,
     }

@@ -661,6 +661,13 @@ export interface OrchestratorConfig {
    * undefined behavior.
    */
   readonly onPlanReady?: (tasks: readonly Task[]) => Promise<boolean>
+  /**
+   * Called for each streaming event emitted by an agent during runTeam().
+   * When provided, agents run in streaming mode so the TUI can receive
+   * real-time text deltas and tool-call events.
+   * Only invoked by runTeam(). Not called for runAgent() or runTasks().
+   */
+  readonly onAgentStream?: (agentName: string, event: StreamEvent) => void
 }
 
 /**

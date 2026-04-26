@@ -239,13 +239,12 @@ export class Agent {
    *
    * Like {@link run}, this does not use or update the persistent history.
    */
-  // TODO(#18): accept optional RunOptions to forward trace context
-  async *stream(prompt: string): AsyncGenerator<StreamEvent> {
+  async *stream(prompt: string, runOptions?: Partial<RunOptions>): AsyncGenerator<StreamEvent> {
     const messages: LLMMessage[] = [
       { role: 'user', content: [{ type: 'text', text: prompt }] },
     ]
 
-    yield* this.executeStream(messages)
+    yield* this.executeStream(messages, runOptions)
   }
 
   // -------------------------------------------------------------------------
@@ -517,7 +516,7 @@ export class Agent {
    * Shared streaming path used by `stream`.
    * Handles state transitions and error wrapping.
    */
-  private async *executeStream(messages: LLMMessage[]): AsyncGenerator<StreamEvent> {
+  private async *executeStream(messages: LLMMessage[], callerOptions?: Partial<RunOptions>): AsyncGenerator<StreamEvent> {
     this.transitionTo('running')
 
     try {
@@ -533,8 +532,12 @@ export class Agent {
       const timeoutSignal = this.config.timeoutMs !== undefined && this.config.timeoutMs > 0
         ? AbortSignal.timeout(this.config.timeoutMs)
         : undefined
+      const callerAbort = callerOptions?.abortSignal
+      const effectiveAbort = timeoutSignal && callerAbort
+        ? mergeAbortSignals(timeoutSignal, callerAbort)
+        : timeoutSignal ?? callerAbort
 
-      for await (const event of runner.stream(messages, timeoutSignal ? { abortSignal: timeoutSignal } : {})) {
+      for await (const event of runner.stream(messages, effectiveAbort ? { abortSignal: effectiveAbort } : {})) {
         if (event.type === 'done') {
           const result = event.data as import('./runner.js').RunResult
           this.state.tokenUsage = addUsage(this.state.tokenUsage, result.tokenUsage)

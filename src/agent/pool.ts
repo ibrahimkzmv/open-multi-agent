@@ -20,7 +20,7 @@
  * ```
  */
 
-import type { AgentRunResult } from '../types.js'
+import type { AgentRunResult, StreamEvent } from '../types.js'
 import type { RunOptions } from './runner.js'
 import type { Agent } from './agent.js'
 import { Semaphore } from '../utils/semaphore.js'
@@ -148,6 +148,7 @@ export class AgentPool {
     agentName: string,
     prompt: string,
     runOptions?: Partial<RunOptions>,
+    streamCallback?: (event: StreamEvent) => void,
   ): Promise<AgentRunResult> {
     const agent = this.requireAgent(agentName)
     const agentLock = this.agentLocks.get(agentName)!
@@ -158,6 +159,21 @@ export class AgentPool {
     try {
       await this.semaphore.acquire()
       try {
+        if (streamCallback) {
+          let result: AgentRunResult | null = null
+          for await (const event of agent.stream(prompt, runOptions)) {
+            streamCallback(event)
+            if (event.type === 'done') result = event.data as AgentRunResult
+            if (event.type === 'error') throw event.data as Error
+          }
+          return result ?? {
+            success: false,
+            output: '',
+            messages: [],
+            tokenUsage: { input_tokens: 0, output_tokens: 0 },
+            toolCalls: [],
+          }
+        }
         return await agent.run(prompt, runOptions)
       } finally {
         this.semaphore.release()
