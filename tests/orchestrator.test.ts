@@ -572,6 +572,31 @@ describe('OpenMultiAgent', () => {
   describe('onPlanReady gate', () => {
     const complexGoal = 'First research the topic, then write a comprehensive guide based on the findings'
 
+    it('emits plan_ready trace even when onPlanReady callback is not configured', async () => {
+      mockAdapterResponses = [
+        '```json\n[{"title": "Research", "description": "Research", "assignee": "worker"}]\n```',
+        'worker output',
+        'final synthesis',
+      ]
+      const traces: TraceEvent[] = []
+      const oma = new OpenMultiAgent({
+        defaultModel: 'mock-model',
+        onTrace: (event) => { traces.push(event) },
+      })
+      const team = oma.createTeam('t', teamCfg([agentConfig('worker')]))
+
+      const result = await oma.runTeam(team, complexGoal)
+
+      expect(result.success).toBe(true)
+      const planReadyTraces = traces.filter((t) => t.type === 'plan_ready')
+      expect(planReadyTraces).toHaveLength(1)
+      const planReady = planReadyTraces[0]!
+      expect(planReady.type).toBe('plan_ready')
+      expect(planReady.taskCount).toBe(1)
+      expect(planReady.approved).toBe(true)
+      expect(planReady.runId).toMatch(/.+/)
+    })
+
     it('aborts when callback returns false, preserving coordinator token usage', async () => {
       mockAdapterResponses = [
         '```json\n[{"title": "Research", "description": "Research", "assignee": "worker"}]\n```',

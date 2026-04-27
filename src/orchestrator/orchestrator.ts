@@ -1199,44 +1199,31 @@ export class OpenMultiAgent {
       taskMetrics,
     }
 
+    const planTasks = queue.list()
+    const planReadyStartMs = Date.now()
+    let approved = true
     if (this.config.onPlanReady) {
-      const planTasks = queue.list()
-      let approved: boolean
-      const planReadyStartMs = Date.now()
       try {
         approved = await this.config.onPlanReady(planTasks)
       } catch {
-        if (this.config.onTrace) {
-          const planReadyEndMs = Date.now()
-          emitTrace(this.config.onTrace, {
-            type: 'plan_ready',
-            runId: runId ?? '',
-            agent: 'coordinator',
-            taskCount: planTasks.length,
-            approved: false,
-            startMs: planReadyStartMs,
-            endMs: planReadyEndMs,
-            durationMs: planReadyEndMs - planReadyStartMs,
-          })
-        }
-        return { ...this.buildTeamRunResult(agentResults, goal, []), success: false }
+        approved = false
       }
-      if (this.config.onTrace) {
-        const planReadyEndMs = Date.now()
-        emitTrace(this.config.onTrace, {
-          type: 'plan_ready',
-          runId: runId ?? '',
-          agent: 'coordinator',
-          taskCount: planTasks.length,
-          approved,
-          startMs: planReadyStartMs,
-          endMs: planReadyEndMs,
-          durationMs: planReadyEndMs - planReadyStartMs,
-        })
-      }
-      if (!approved) {
-        return { ...this.buildTeamRunResult(agentResults, goal, []), success: false }
-      }
+    }
+    if (this.config.onTrace) {
+      const planReadyEndMs = Date.now()
+      emitTrace(this.config.onTrace, {
+        type: 'plan_ready',
+        runId: runId ?? '',
+        agent: 'coordinator',
+        taskCount: planTasks.length,
+        approved,
+        startMs: planReadyStartMs,
+        endMs: planReadyEndMs,
+        durationMs: planReadyEndMs - planReadyStartMs,
+      })
+    }
+    if (!approved) {
+      return { ...this.buildTeamRunResult(agentResults, goal, []), success: false }
     }
 
     await executeQueue(queue, ctx)
